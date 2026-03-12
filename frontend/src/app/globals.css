@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+:root {
+  --color-brand-50: #eef6ff;
+  --color-brand-100: #d9ebff;
+  --color-brand-200: #b8dbff;
+  --color-brand-300: #8ac3ff;
+  --color-brand-400: #58a6ff;
+  --color-brand-500: #2f86f7;
+  --color-brand-600: #1667d6;
+  --color-brand-700: #1253ac;
+  --color-brand-800: #134789;
+  --color-brand-900: #153d72;
+
+  --color-surface: #ffffff;
+  --color-surface-alt: #f7f9fc;
+  --color-border: #dbe4ef;
+  --color-text: #122033;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  color: var(--color-text);
+  background:
+    radial-gradient(1200px 500px at 20% 0%, #ecf5ff 0%, transparent 60%),
+    radial-gradient(1000px 400px at 100% 0%, #f2f7ff 0%, transparent 50%),
+    linear-gradient(180deg, #f5f9ff 0%, #f2f5fa 100%);
+}
+
+@layer components {
+  .panel {
+    @apply rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm;
+  }
+}
