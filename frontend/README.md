@@ -32,3 +32,6 @@ DJANGO_API_BASE_URL=http://localhost:8000/api/v1
   - `POST /api/auth/login`
   - `POST /api/auth/logout`
   - `GET /api/auth/session`
+  - `GET /api/dashboard/summary`
+  - `GET|POST /api/members`
+  - `GET|PATCH|DELETE /api/members/{id}`

@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -31,8 +31,17 @@ class RoomAllotmentSerializer(serializers.ModelSerializer):
         bed = attrs["bed"]
         request = self.context.get("request")
 
+        if member.is_deleted:
+            raise serializers.ValidationError({"member": "Archived members cannot be allotted."})
+
         if member.status != MemberStatus.ACTIVE:
             raise serializers.ValidationError({"member": "Only active members can be allotted."})
+
+        if not bed.is_active:
+            raise serializers.ValidationError({"bed": "Only active beds can be allotted."})
+
+        if not bed.room.is_active:
+            raise serializers.ValidationError({"bed": "Cannot allot a bed in an inactive room."})
 
         if member.hostel_id != bed.room.hostel_id:
             raise serializers.ValidationError("Member and bed must belong to the same hostel.")
@@ -51,13 +60,19 @@ class RoomAllotmentSerializer(serializers.ModelSerializer):
 
         return attrs
 
+    @transaction.atomic
     def create(self, validated_data):
         request = self.context["request"]
-        return RoomAllotment.objects.create(
-            hostel=validated_data["member"].hostel,
-            created_by=request.user,
-            **validated_data,
-        )
+        try:
+            return RoomAllotment.objects.create(
+                hostel=validated_data["member"].hostel,
+                created_by=request.user,
+                **validated_data,
+            )
+        except IntegrityError as exc:
+            raise serializers.ValidationError(
+                {"detail": "Allotment conflict detected. Member or bed was updated by another request."}
+            ) from exc
 
 
 class TransferSerializer(serializers.Serializer):

@@ -33,9 +33,28 @@ Environment variables are auto-loaded from `.env`.
 - `POST /api/v1/allotments/{id}/transfer/`
 - `POST /api/v1/allotments/{id}/checkout/`
 - `GET /api/v1/billing/status/`
+- `GET|POST|PATCH|DELETE /api/v1/billing/fee-plans/`
+- `GET|POST /api/v1/billing/member-fee-plans/`
+- `POST /api/v1/billing/member-fee-plans/{id}/close/`
+- `GET|POST /api/v1/billing/invoices/`
+- `POST /api/v1/billing/invoices/generate-monthly/`
+- `POST /api/v1/billing/invoices/{id}/add-charge/`
+- `POST /api/v1/billing/invoices/{id}/apply-credit/`
+- `GET|POST /api/v1/billing/payments/`
+- `GET /api/v1/billing/credits/`
 - `GET /api/v1/attendance/status/`
+- `GET|POST|PATCH /api/v1/attendance/records/`
+- `GET /api/v1/attendance/records/daily-sheet/`
+- `POST /api/v1/attendance/records/bulk-mark/`
 - `GET /api/v1/notifications/status/`
-- `GET /api/v1/reports/status/`
+- `GET|POST|PATCH|DELETE /api/v1/notifications/announcements/`
+- `POST /api/v1/notifications/announcements/{id}/publish/`
+- `POST /api/v1/notifications/announcements/{id}/archive/`
+- `GET|POST /api/v1/notifications/notifications/`
+- `POST /api/v1/notifications/notifications/{id}/mark-read/`
+- `POST /api/v1/notifications/notifications/{id}/dismiss/`
+- `POST /api/v1/notifications/notifications/generate-fee-reminders/`
+- `GET /api/v1/reports/status/` (member-integrated summary)
 - `GET /api/v1/audit/status/`
 
 ## Phase 1

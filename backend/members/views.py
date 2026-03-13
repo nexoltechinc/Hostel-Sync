@@ -1,9 +1,12 @@
+from django.utils import timezone
 from rest_framework import permissions, serializers, viewsets
+from rest_framework.response import Response
 
 from accounts.permissions import HasRBACPermission
 from accounts.rbac import PermissionCode
+from allotments.models import AllotmentStatus, RoomAllotment
 
-from .models import Member
+from .models import Member, MemberStatus
 from .serializers import MemberSerializer
 
 
@@ -50,3 +53,19 @@ class MemberViewSet(viewsets.ModelViewSet):
             serializer.save()
             return
         serializer.save(hostel=user.hostel)
+
+    def destroy(self, request, *args, **kwargs):
+        member = self.get_object()
+        if RoomAllotment.objects.filter(member=member, status=AllotmentStatus.ACTIVE).exists():
+            raise serializers.ValidationError({"detail": "Cannot archive a member with active room allotment."})
+
+        member.is_deleted = True
+        update_fields = ["is_deleted", "updated_at"]
+        if member.status == MemberStatus.ACTIVE:
+            member.status = MemberStatus.INACTIVE
+            update_fields.append("status")
+            if not member.leaving_date:
+                member.leaving_date = timezone.localdate()
+                update_fields.append("leaving_date")
+        member.save(update_fields=update_fields)
+        return Response(status=204)

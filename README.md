@@ -32,14 +32,15 @@ cmd /c npm run dev
 - Auth login: `POST /auth/login/`
 - Token refresh: `POST /auth/refresh/`
 - Profile: `GET /auth/me/profile/`
+- Dashboard summary: `GET /reports/dashboard-summary/`
 - Members: `/members/`
 - Rooms: `/rooms/`
 - Beds: `/rooms/beds/`
 - Allotments: `/allotments/`
-- Billing scaffold: `/billing/status/`
-- Attendance scaffold: `/attendance/status/`
-- Reports scaffold: `/reports/status/`
-- Notifications scaffold: `/notifications/status/`
+- Billing status: `/billing/status/` (member-integrated summary)
+- Attendance status: `/attendance/status/` (member-integrated summary)
+- Reports status: `/reports/status/` (member-integrated summary)
+- Notifications status: `/notifications/status/` (member-integrated summary)
 - Audit scaffold: `/audit/status/`
 
 ## Phase 1 status
