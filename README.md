@@ -39,7 +39,13 @@ cmd /c npm run dev
 - Allotments: `/allotments/`
 - Billing status: `/billing/status/` (member-integrated summary)
 - Attendance status: `/attendance/status/` (member-integrated summary)
-- Reports status: `/reports/status/` (member-integrated summary)
+- Reports status: `/reports/status/`
+- Occupancy report: `/reports/occupancy/`
+- Fee collection report: `/reports/fee-collection/`
+- Pending dues report: `/reports/pending-dues/`
+- Attendance report: `/reports/attendance/`
+- Settings status: `/settings/status/`
+- Current settings: `/settings/current/`
 - Notifications status: `/notifications/status/` (member-integrated summary)
 - Audit scaffold: `/audit/status/`
 

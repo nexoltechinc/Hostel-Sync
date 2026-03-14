@@ -54,7 +54,14 @@ Environment variables are auto-loaded from `.env`.
 - `POST /api/v1/notifications/notifications/{id}/mark-read/`
 - `POST /api/v1/notifications/notifications/{id}/dismiss/`
 - `POST /api/v1/notifications/notifications/generate-fee-reminders/`
-- `GET /api/v1/reports/status/` (member-integrated summary)
+- `GET /api/v1/reports/status/`
+- `GET /api/v1/reports/dashboard-summary/`
+- `GET /api/v1/reports/occupancy/`
+- `GET /api/v1/reports/fee-collection/`
+- `GET /api/v1/reports/pending-dues/`
+- `GET /api/v1/reports/attendance/`
+- `GET /api/v1/settings/status/`
+- `GET|PATCH /api/v1/settings/current/`
 - `GET /api/v1/audit/status/`
 
 ## Phase 1
@@ -62,4 +69,4 @@ Environment variables are auto-loaded from `.env`.
 - JWT auth (SimpleJWT)
 - Role-based access checks via centralized RBAC map
 - Transactional service layer for staff user provisioning/updating
-- App scaffolds for upcoming modules: billing, attendance, notifications, reports, audit
+- Core backend modules delivered through reports, settings, and dashboard integration; audit remains scaffold-only

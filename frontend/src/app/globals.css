@@ -24,6 +24,7 @@ body {
 }
 
 body {
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
   color: var(--color-text);
   background:
     radial-gradient(1200px 500px at 20% 0%, #ecf5ff 0%, transparent 60%),

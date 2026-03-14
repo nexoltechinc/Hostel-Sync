@@ -2,12 +2,14 @@
 
 import {
   BedSingle,
+  Bell,
   Building2,
   CalendarCheck2,
   CreditCard,
   LoaderCircle,
   TriangleAlert,
   Users,
+  Wallet,
 } from "lucide-react";
 
 import { useDashboardSummary } from "@/hooks/use-dashboard-summary";
@@ -75,17 +77,28 @@ function buildMetricCards(data: DashboardSummary) {
       title: "Pending Dues",
       value: formatCurrency(data.financial.pending_dues),
       subtitle:
-        data.financial.pending_dues === null ? "Billing module is scaffolded." : "Outstanding amount pending collection.",
+        data.financial.pending_dues === null ? "Financial summary unavailable." : "Outstanding amount pending collection.",
       icon: CreditCard,
+    },
+    {
+      title: "Monthly Collection",
+      value: formatCurrency(data.financial.monthly_collection),
+      subtitle:
+        data.financial.monthly_collection === null ? "Financial summary unavailable." : "Collections received this month.",
+      icon: Wallet,
     },
     {
       title: "Attendance Today",
       value: formatCount(data.attendance.present_today),
       subtitle:
-        data.attendance.present_today === null
-          ? "Attendance module is scaffolded."
-          : `${formatCount(data.attendance.absent_today)} marked absent`,
+        data.attendance.present_today === null ? "Attendance summary unavailable." : `${formatCount(data.attendance.absent_today)} marked absent`,
       icon: CalendarCheck2,
+    },
+    {
+      title: "Unread Alerts",
+      value: formatCount(data.notifications.unread),
+      subtitle: data.notifications.unread === null ? "Notification summary unavailable." : "Unread notifications in queue.",
+      icon: Bell,
     },
   ];
 }
@@ -130,8 +143,7 @@ export default function DashboardPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Module 2</p>
         <h1 className="text-2xl font-semibold text-slate-900">Operations Dashboard</h1>
         <p className="text-sm text-slate-600">
-          Live operational overview from Members, Rooms, and Allotments. Billing and Attendance values will activate once
-          those modules are fully implemented.
+          Live operational overview across members, rooms, allotments, billing, attendance, and notifications.
         </p>
       </header>
 

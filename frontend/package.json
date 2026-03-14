@@ -4,7 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "postinstall": "node scripts/fix-next-export-worker.mjs",
+    "prebuild": "node scripts/fix-next-export-worker.mjs",
+    "typecheck": "tsc --noEmit",
+    "build": "npm run lint && npm run typecheck && next build",
     "start": "next start",
     "lint": "eslint"
   },

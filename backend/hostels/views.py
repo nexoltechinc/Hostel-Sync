@@ -15,8 +15,19 @@ class HostelViewSet(viewsets.ModelViewSet):
     ordering_fields = ("id", "name", "code")
     permission_classes = [permissions.IsAuthenticated, HasRBACPermission]
     permission_map = {
+        "list": PermissionCode.MANAGE_HOSTEL_SETTINGS,
+        "retrieve": PermissionCode.MANAGE_HOSTEL_SETTINGS,
         "create": PermissionCode.MANAGE_HOSTEL_SETTINGS,
         "update": PermissionCode.MANAGE_HOSTEL_SETTINGS,
         "partial_update": PermissionCode.MANAGE_HOSTEL_SETTINGS,
         "destroy": PermissionCode.MANAGE_HOSTEL_SETTINGS,
     }
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user = self.request.user
+        if user.is_superuser:
+            return queryset
+        if user.hostel_id:
+            return queryset.filter(pk=user.hostel_id)
+        return queryset.none()

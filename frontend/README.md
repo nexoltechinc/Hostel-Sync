@@ -35,3 +35,9 @@ DJANGO_API_BASE_URL=http://localhost:8000/api/v1
   - `GET /api/dashboard/summary`
   - `GET|POST /api/members`
   - `GET|PATCH|DELETE /api/members/{id}`
+  - `GET /api/reports/occupancy`
+  - `GET /api/reports/fee-collection`
+  - `GET /api/reports/pending-dues`
+  - `GET /api/reports/attendance`
+  - `GET|PATCH /api/settings`
+  - `GET /api/settings/status`

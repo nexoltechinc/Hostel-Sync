@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .models import User
-from .rbac import get_role_permissions
+from .rbac import get_user_permissions
 
 
 class UserReadSerializer(serializers.ModelSerializer):
@@ -25,10 +25,7 @@ class UserReadSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_permissions(self, obj: User):
-        if obj.is_superuser:
-            # superuser bypasses RBAC checks in API permission classes
-            return ["*"]
-        return sorted(get_role_permissions(obj.role))
+        return sorted(get_user_permissions(obj))
 
 
 class UserWriteSerializer(serializers.ModelSerializer):

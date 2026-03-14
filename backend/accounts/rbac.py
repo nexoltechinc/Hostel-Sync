@@ -86,6 +86,21 @@ def get_role_permissions(role: str) -> set[str]:
     return ROLE_PERMISSION_MAP.get(role, set())
 
 
+def get_user_permissions(user) -> set[str]:
+    if user.is_superuser:
+        return {"*"}
+
+    permissions = set(get_role_permissions(user.role))
+    try:
+        from system_settings.permissions import get_additional_permissions
+
+        permissions.update(get_additional_permissions(user))
+    except ImportError:
+        # Settings should not block authentication or permission checks if defaults are unavailable.
+        pass
+    return permissions
+
+
 def has_permissions(role: str, requested: Iterable[str]) -> bool:
     role_permissions = get_role_permissions(role)
     return all(code in role_permissions for code in requested)

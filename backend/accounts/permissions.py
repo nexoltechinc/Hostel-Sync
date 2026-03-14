@@ -1,6 +1,6 @@
 from rest_framework.permissions import BasePermission
 
-from .rbac import has_permissions
+from .rbac import get_user_permissions
 
 
 class HasRBACPermission(BasePermission):
@@ -14,9 +14,6 @@ class HasRBACPermission(BasePermission):
         user = request.user
         if not user or not user.is_authenticated:
             return False
-        if user.is_superuser:
-            return True
-
         required_permission = getattr(view, "required_permission", None)
         permission_map = getattr(view, "permission_map", {})
         action = getattr(view, "action", None)
@@ -31,4 +28,7 @@ class HasRBACPermission(BasePermission):
         else:
             required = list(required_permission)
 
-        return has_permissions(user.role, required)
+        user_permissions = get_user_permissions(user)
+        if "*" in user_permissions:
+            return True
+        return all(code in user_permissions for code in required)

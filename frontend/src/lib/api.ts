@@ -1,18 +1,27 @@
 import type {
+  AttendanceReport,
+  AttendanceRecordStatus,
   AuthResponse,
   AuthUser,
   Bed,
   BedUpdatePayload,
   BedWritePayload,
   DashboardSummary,
+  FeeCollectionReport,
   Member,
   MemberGender,
   MemberStatus,
   MemberUpdatePayload,
   MemberWritePayload,
+  OccupancyReport,
   PaginatedResponse,
+  PaymentMethod,
+  PendingDuesReport,
   Room,
   RoomType,
+  SettingsSnapshot,
+  SettingsStatus,
+  SettingsUpdatePayload,
   RoomUpdatePayload,
   RoomWritePayload,
 } from "./types";
@@ -96,6 +105,33 @@ export type BedsQueryParams = {
   page?: number;
 };
 
+export type OccupancyReportQueryParams = {
+  room_type?: RoomType | "all";
+  is_active?: boolean | "all";
+};
+
+export type FeeCollectionReportQueryParams = {
+  date_from?: string;
+  date_to?: string;
+  member?: number;
+  method?: PaymentMethod | "all";
+};
+
+export type PendingDuesReportQueryParams = {
+  billing_month?: string;
+  due_on_or_before?: string;
+  member?: number;
+  only_overdue?: boolean;
+  min_balance?: number;
+};
+
+export type AttendanceReportQueryParams = {
+  date_from?: string;
+  date_to?: string;
+  member?: number;
+  status?: AttendanceRecordStatus | "all";
+};
+
 function buildRoomsQuery(params: RoomsQueryParams = {}) {
   const searchParams = new URLSearchParams();
   if (params.search?.trim()) {
@@ -136,6 +172,17 @@ function buildBedsQuery(params: BedsQueryParams = {}) {
   return searchParams.toString();
 }
 
+function buildReportQuery(params: Record<string, string | number | boolean | null | undefined>) {
+  const searchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null || value === "all" || value === "") {
+      continue;
+    }
+    searchParams.set(key, String(value));
+  }
+  return searchParams.toString();
+}
+
 export function login(payload: { username: string; password: string }) {
   return webRequest<AuthResponse>("/api/auth/login", { method: "POST", body: payload });
 }
@@ -150,6 +197,42 @@ export function getSession() {
 
 export function getDashboardSummary() {
   return webRequest<DashboardSummary>("/api/dashboard/summary");
+}
+
+export function getSettings() {
+  return webRequest<SettingsSnapshot>("/api/settings");
+}
+
+export function getSettingsStatus() {
+  return webRequest<SettingsStatus>("/api/settings/status");
+}
+
+export function updateSettings(payload: SettingsUpdatePayload) {
+  return webRequest<SettingsSnapshot>("/api/settings", { method: "PATCH", body: payload });
+}
+
+export function getOccupancyReport(params: OccupancyReportQueryParams = {}) {
+  const query = buildReportQuery(params);
+  const path = query ? `/api/reports/occupancy?${query}` : "/api/reports/occupancy";
+  return webRequest<OccupancyReport>(path);
+}
+
+export function getFeeCollectionReport(params: FeeCollectionReportQueryParams = {}) {
+  const query = buildReportQuery(params);
+  const path = query ? `/api/reports/fee-collection?${query}` : "/api/reports/fee-collection";
+  return webRequest<FeeCollectionReport>(path);
+}
+
+export function getPendingDuesReport(params: PendingDuesReportQueryParams = {}) {
+  const query = buildReportQuery(params);
+  const path = query ? `/api/reports/pending-dues?${query}` : "/api/reports/pending-dues";
+  return webRequest<PendingDuesReport>(path);
+}
+
+export function getAttendanceReport(params: AttendanceReportQueryParams = {}) {
+  const query = buildReportQuery(params);
+  const path = query ? `/api/reports/attendance?${query}` : "/api/reports/attendance";
+  return webRequest<AttendanceReport>(path);
 }
 
 export function getMembers(params: MembersQueryParams = {}) {
