@@ -338,13 +338,13 @@ export function DashboardShell({ children }: DashboardShellProps) {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  className="hidden h-9 max-w-[16rem] items-center gap-2 rounded-[0.95rem] border bg-white/5 px-3 text-[12px] transition hover:border-[var(--color-border-strong)] md:inline-flex xl:max-w-[18rem]"
-                  style={{ borderColor: "var(--color-border)" }}
+                  className="dashboard-command-bar hidden h-9 max-w-[16rem] items-center gap-2 rounded-[0.95rem] border px-3 text-[12px] transition hover:border-[var(--color-border-strong)] md:inline-flex xl:max-w-[18rem]"
                   aria-label="Search workspace"
                   title="Search workspace"
                 >
                   <Search className="h-2.5 w-2.5 text-[var(--color-text-muted)]" />
                   <span className="truncate text-[var(--color-text-soft)]">Search residents, rooms, invoices</span>
+                  <span className="dashboard-keycap ml-1 hidden xl:inline-flex">Ctrl K</span>
                 </button>
 
                 <ThemeToggle compact className="h-8 w-8 rounded-[0.85rem] bg-white/5 shadow-none" />

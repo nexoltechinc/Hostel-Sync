@@ -40,6 +40,11 @@
   --dashboard-grid-line: rgba(133, 160, 188, 0.08);
   --dashboard-chip-bg: rgba(255, 255, 255, 0.045);
   --dashboard-chip-border: rgba(150, 176, 201, 0.16);
+  --dashboard-card-highlight: rgba(255, 255, 255, 0.08);
+  --dashboard-search-bg: linear-gradient(180deg, rgba(20, 31, 49, 0.92) 0%, rgba(14, 22, 37, 0.82) 100%);
+  --dashboard-search-border: rgba(142, 170, 208, 0.2);
+  --dashboard-stat-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.03) 100%);
+  --dashboard-stat-border: rgba(255, 255, 255, 0.09);
   --dashboard-hero-overlay:
     radial-gradient(circle at 18% 24%, rgba(31, 165, 158, 0.24), transparent 38%),
     radial-gradient(circle at 85% 12%, rgba(37, 93, 244, 0.2), transparent 42%);
@@ -121,6 +126,11 @@
   --dashboard-grid-line: rgba(126, 156, 183, 0.12);
   --dashboard-chip-bg: rgba(255, 255, 255, 0.8);
   --dashboard-chip-border: rgba(180, 198, 218, 0.9);
+  --dashboard-card-highlight: rgba(255, 255, 255, 0.9);
+  --dashboard-search-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(245, 249, 255, 0.92) 100%);
+  --dashboard-search-border: rgba(174, 193, 219, 0.9);
+  --dashboard-stat-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(245, 249, 255, 0.88) 100%);
+  --dashboard-stat-border: rgba(194, 207, 228, 0.95);
   --dashboard-hero-overlay:
     radial-gradient(circle at 18% 24%, rgba(31, 165, 158, 0.12), transparent 38%),
     radial-gradient(circle at 85% 12%, rgba(37, 93, 244, 0.12), transparent 42%);
@@ -340,6 +350,39 @@ body::after {
   }
 }
 
+@keyframes dashboardShimmer {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(160%);
+  }
+}
+
+@keyframes dashboardProgressFill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes dashboardProgressSheen {
+  0% {
+    transform: translateX(-140%);
+    opacity: 0;
+  }
+  30%,
+  70% {
+    opacity: 0.45;
+  }
+  100% {
+    transform: translateX(160%);
+    opacity: 0;
+  }
+}
+
 ::selection {
   background: rgba(88, 129, 255, 0.28);
 }
@@ -413,10 +456,133 @@ body::after {
     background: var(--dashboard-chip-bg);
     border: 1px solid var(--dashboard-chip-border);
     color: var(--color-text-soft);
+    backdrop-filter: blur(10px);
   }
 
   .dashboard-divider {
     border-color: var(--color-border);
+  }
+
+  .dashboard-command-bar {
+    background: var(--dashboard-search-bg);
+    border-color: var(--dashboard-search-border);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 14px 30px rgba(4, 10, 23, 0.16);
+  }
+
+  .dashboard-keycap {
+    @apply inline-flex items-center rounded-[0.55rem] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em];
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--color-text-muted);
+  }
+
+  .dashboard-cta {
+    @apply inline-flex items-center gap-1.5 rounded-[1rem] border px-3.5 py-2 text-sm font-semibold transition;
+  }
+
+  .dashboard-cta-primary {
+    border-color: transparent;
+    background: var(--nav-active-bg);
+    color: #fff;
+    box-shadow:
+      0 18px 34px rgba(20, 64, 172, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  }
+
+  .dashboard-cta-primary:hover {
+    transform: translate3d(0, -2px, 0);
+    box-shadow:
+      0 22px 42px rgba(20, 64, 172, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  }
+
+  .dashboard-cta-secondary {
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--color-text-strong);
+  }
+
+  .dashboard-cta-secondary:hover {
+    transform: translate3d(0, -2px, 0);
+    border-color: var(--color-border-strong);
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .dashboard-surface-card {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%),
+      rgba(255, 255, 255, 0.02);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      0 20px 50px rgba(4, 10, 23, 0.12);
+    transition:
+      transform 180ms ease,
+      border-color 180ms ease,
+      box-shadow 180ms ease,
+      background-color 180ms ease;
+  }
+
+  .dashboard-surface-card:hover {
+    transform: translate3d(0, -3px, 0);
+    border-color: var(--color-border-strong);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 24px 60px rgba(4, 10, 23, 0.16);
+  }
+
+  .dashboard-stat-card {
+    background: var(--dashboard-stat-bg);
+    border: 1px solid var(--dashboard-stat-border);
+    box-shadow:
+      inset 0 1px 0 var(--dashboard-card-highlight),
+      0 18px 38px rgba(4, 10, 23, 0.12);
+    transition:
+      transform 180ms ease,
+      border-color 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  .dashboard-stat-card:hover {
+    transform: translate3d(0, -2px, 0);
+    border-color: var(--color-border-strong);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      0 24px 48px rgba(4, 10, 23, 0.18);
+  }
+
+  .dashboard-progress-track {
+    @apply relative overflow-hidden rounded-full;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .dashboard-progress-fill {
+    @apply relative h-full rounded-full;
+    transform-origin: left;
+    animation: dashboardProgressFill 900ms cubic-bezier(0.2, 0.88, 0.24, 1) both;
+  }
+
+  .dashboard-progress-fill::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.22) 50%, transparent 100%);
+    animation: dashboardProgressSheen 1400ms ease-out 180ms both;
+  }
+
+  .dashboard-skeleton {
+    @apply relative overflow-hidden rounded-[inherit];
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%),
+      rgba(255, 255, 255, 0.03);
+  }
+
+  .dashboard-skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.16) 48%, transparent 100%);
+    animation: dashboardShimmer 1.4s ease-in-out infinite;
   }
 
   .status-dot {
@@ -507,6 +673,9 @@ body::after {
 @media (prefers-reduced-motion: reduce) {
   .dashboard-fade-up,
   .dashboard-glow,
+  .dashboard-progress-fill,
+  .dashboard-progress-fill::after,
+  .dashboard-skeleton::after,
   .login-orb,
   .login-orb-drift,
   .login-pulse,

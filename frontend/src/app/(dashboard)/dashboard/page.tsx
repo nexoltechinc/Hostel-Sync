@@ -282,8 +282,77 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <section className="grid min-h-[42vh] place-items-center">
-        <div className="panel panel-soft inline-flex items-center gap-3 px-5 py-4 text-sm text-[var(--color-text-soft)]">
+      <section className="space-y-5 pb-2">
+        <div className="dashboard-fade-up grid gap-4 xl:grid-cols-[minmax(0,1.42fr)_minmax(300px,0.9fr)]">
+          <div className="panel panel-soft panel-elevated relative overflow-hidden px-5 py-5 md:px-6 md:py-6">
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(230px,0.72fr)] xl:items-end">
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  <div className="dashboard-skeleton h-7 w-40 rounded-full" />
+                  <div className="dashboard-skeleton h-7 w-36 rounded-full" />
+                </div>
+                <div className="dashboard-skeleton h-4 w-32 rounded-full" />
+                <div className="dashboard-skeleton h-14 w-full max-w-[30rem] rounded-[1.25rem]" />
+                <div className="dashboard-skeleton h-5 w-full max-w-[28rem] rounded-full" />
+                <div className="dashboard-skeleton h-5 w-full max-w-[24rem] rounded-full" />
+                <div className="flex flex-wrap gap-2.5 pt-1">
+                  <div className="dashboard-skeleton h-10 w-40 rounded-[1rem]" />
+                  <div className="dashboard-skeleton h-10 w-44 rounded-[1rem]" />
+                  <div className="dashboard-skeleton h-10 w-36 rounded-[1rem]" />
+                </div>
+              </div>
+
+              <div className="grid gap-2.5 sm:grid-cols-3 xl:grid-cols-1">
+                {[0, 1, 2].map((item) => (
+                  <div key={item} className="dashboard-stat-card rounded-[22px] px-3.5 py-3.5">
+                    <div className="dashboard-skeleton h-3.5 w-24 rounded-full" />
+                    <div className="dashboard-skeleton mt-3 h-8 w-20 rounded-[0.85rem]" />
+                    <div className="dashboard-skeleton mt-2 h-4 w-full rounded-full" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="panel panel-soft panel-elevated p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-2">
+                <div className="dashboard-skeleton h-3 w-28 rounded-full" />
+                <div className="dashboard-skeleton h-10 w-52 rounded-[1rem]" />
+              </div>
+              <div className="dashboard-skeleton h-7 w-24 rounded-full" />
+            </div>
+
+            <div className="mt-5 space-y-2.5">
+              {[0, 1, 2, 3].map((item) => (
+                <div key={item} className="dashboard-surface-card rounded-[22px] border p-3.5" style={{ borderColor: "var(--color-border)" }}>
+                  <div className="dashboard-skeleton h-4 w-28 rounded-full" />
+                  <div className="dashboard-skeleton mt-3 h-8 w-20 rounded-[0.85rem]" />
+                  <div className="dashboard-skeleton mt-2 h-4 w-full rounded-full" />
+                  <div className="dashboard-progress-track mt-4 h-1.5">
+                    <div className="dashboard-skeleton h-full w-full rounded-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="dashboard-fade-up grid gap-3.5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" style={{ animationDelay: "100ms" }}>
+          {[0, 1, 2, 3].map((item) => (
+            <div key={item} className="panel panel-soft p-4">
+              <div className="dashboard-skeleton h-4 w-28 rounded-full" />
+              <div className="dashboard-skeleton mt-3 h-9 w-24 rounded-[1rem]" />
+              <div className="dashboard-skeleton mt-3 h-4 w-full rounded-full" />
+              <div className="dashboard-skeleton mt-2 h-4 w-2/3 rounded-full" />
+              <div className="dashboard-progress-track mt-4 h-1.5">
+                <div className="dashboard-skeleton h-full w-full rounded-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="dashboard-fade-up panel panel-soft inline-flex items-center gap-3 px-5 py-4 text-sm text-[var(--color-text-soft)]" style={{ animationDelay: "180ms" }}>
           <LoaderCircle className="h-4 w-4 animate-spin" />
           Loading dashboard metrics...
         </div>
@@ -377,6 +446,9 @@ export default function DashboardPage() {
                 {latestEvent ? <span className="dashboard-chip">Latest event {formatTimestamp(latestEvent.timestamp)}</span> : null}
               </div>
 
+              <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-brand-300)]">
+                Realtime orchestration
+              </p>
               <h1 className="mt-5 max-w-[34rem] text-[2rem] font-semibold leading-tight tracking-[-0.05em] text-[var(--color-text-strong)] sm:text-[2.65rem]">
                 Operations Dashboard
               </h1>
@@ -387,32 +459,32 @@ export default function DashboardPage() {
               <div className="mt-5 flex flex-wrap gap-2.5">
                 <Link
                   href="/members"
-                  className="inline-flex items-center gap-1.5 rounded-[1rem] border border-transparent bg-[var(--nav-active-bg)] px-3 py-2 text-sm font-semibold text-white shadow-[0_18px_34px_rgba(20,64,172,0.22)] transition hover:translate-y-[-1px]"
+                  className="dashboard-cta dashboard-cta-primary group"
                 >
                   Manage residents
-                  <ArrowRight className="h-3 w-3" />
+                  <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
                 </Link>
                 <Link
                   href="/rooms"
-                  className="inline-flex items-center gap-1.5 rounded-[1rem] border px-3 py-2 text-sm font-semibold text-[var(--color-text-strong)] transition hover:border-[var(--color-border-strong)]"
+                  className="dashboard-cta dashboard-cta-secondary group"
                   style={{ borderColor: "var(--color-border)" }}
                 >
                   Review room inventory
-                  <ArrowRight className="h-3 w-3" />
+                  <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
                 </Link>
                 <Link
                   href="/billing"
-                  className="inline-flex items-center gap-1.5 rounded-[1rem] border px-3 py-2 text-sm font-semibold text-[var(--color-text-strong)] transition hover:border-[var(--color-border-strong)]"
+                  className="dashboard-cta dashboard-cta-secondary group"
                   style={{ borderColor: "var(--color-border)" }}
                 >
                   Open billing console
-                  <ArrowRight className="h-3 w-3" />
+                  <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
                 </Link>
               </div>
             </div>
 
             <div className="mt-5 grid gap-2.5 sm:grid-cols-3 xl:mt-0 xl:grid-cols-1">
-              <div className="rounded-[22px] border bg-white/5 px-3.5 py-3.5 backdrop-blur-sm" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+              <div className="dashboard-stat-card rounded-[22px] px-3.5 py-3.5 backdrop-blur-sm">
                 <p className="text-xs uppercase tracking-[0.24em] text-[var(--color-text-muted)]">Active Residents</p>
                 <p className="mt-2.5 text-[1.7rem] font-semibold tracking-[-0.04em] text-[var(--color-text-strong)]">
                   {formatCount(data.summary.active_members)}
@@ -420,7 +492,7 @@ export default function DashboardPage() {
                 <p className="mt-1 text-sm leading-5 text-[var(--color-text-soft)]">Current residents in active standing.</p>
               </div>
 
-              <div className="rounded-[22px] border bg-white/5 px-3.5 py-3.5 backdrop-blur-sm" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+              <div className="dashboard-stat-card rounded-[22px] px-3.5 py-3.5 backdrop-blur-sm">
                 <p className="text-xs uppercase tracking-[0.24em] text-[var(--color-text-muted)]">Occupancy</p>
                 <p className="mt-2.5 text-[1.7rem] font-semibold tracking-[-0.04em] text-[var(--color-text-strong)]">
                   {clampPercent(data.summary.occupancy_rate)}%
@@ -428,7 +500,7 @@ export default function DashboardPage() {
                 <p className="mt-1 text-sm leading-5 text-[var(--color-text-soft)]">A live reading of bed utilization.</p>
               </div>
 
-              <div className="rounded-[22px] border bg-white/5 px-3.5 py-3.5 backdrop-blur-sm" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+              <div className="dashboard-stat-card rounded-[22px] px-3.5 py-3.5 backdrop-blur-sm">
                 <p className="text-xs uppercase tracking-[0.24em] text-[var(--color-text-muted)]">Pending Dues</p>
                 <p className="mt-2.5 text-[1.7rem] font-semibold tracking-[-0.04em] text-[var(--color-text-strong)]">
                   {formatCurrency(data.financial.pending_dues)}
@@ -444,6 +516,7 @@ export default function DashboardPage() {
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-text-muted)]">Operational Pulse</p>
               <h2 className="mt-2 text-[1.7rem] font-semibold tracking-[-0.04em] text-[var(--color-text-strong)]">Today at a glance</h2>
+              <p className="mt-2 text-sm text-[var(--color-text-muted)]">Live signals across occupancy, attendance, activity, and revenue.</p>
             </div>
             <span className="dashboard-chip">
               <ShieldCheck className="h-[0.7rem] w-[0.7rem]" />
@@ -452,11 +525,11 @@ export default function DashboardPage() {
           </div>
 
           <div className="mt-5 space-y-2.5">
-            {pulseItems.map((item) => (
+            {pulseItems.map((item, index) => (
               <article
                 key={item.title}
-                className="rounded-[22px] border bg-[rgba(255,255,255,0.04)] p-3.5"
-                style={{ borderColor: "var(--color-border)" }}
+                className="dashboard-surface-card dashboard-fade-up rounded-[22px] border p-3.5"
+                style={{ animationDelay: `${index * 90 + 60}ms`, borderColor: "var(--color-border)" }}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -466,9 +539,9 @@ export default function DashboardPage() {
                   </div>
                   <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.accent.solid }} />
                 </div>
-                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[rgba(255,255,255,0.06)]">
+                <div className="dashboard-progress-track mt-3 h-1.5">
                   <div
-                    className="h-full rounded-full"
+                    className="dashboard-progress-fill"
                     style={{ width: `${item.progress}%`, background: `linear-gradient(90deg, ${item.accent.solid}, ${item.accent.soft})` }}
                   />
                 </div>
@@ -486,16 +559,19 @@ export default function DashboardPage() {
             </div>
 
             <div className="mt-3.5 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
-              {readinessItems.map((item) => (
+              {readinessItems.map((item, index) => (
                 <div
                   key={item.name}
-                  className="flex items-center justify-between rounded-[18px] border px-3 py-2 text-sm"
-                  style={{ borderColor: "var(--color-border)" }}
+                  className="dashboard-surface-card dashboard-fade-up flex items-center justify-between rounded-[18px] border px-3 py-2.5 text-sm"
+                  style={{ animationDelay: `${index * 70 + 220}ms`, borderColor: "var(--color-border)" }}
                 >
-                  <span className="text-[var(--color-text-soft)]">{item.name}</span>
-                  <span className="inline-flex items-center gap-2 text-xs font-medium" style={{ color: item.tone.color }}>
+                  <div>
+                    <p className="text-[var(--color-text-soft)]">{item.name}</p>
+                    <p className="mt-0.5 text-[11px] uppercase tracking-[0.16em] text-[var(--color-text-muted)]">{item.status}</p>
+                  </div>
+                  <span className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: item.tone.color, borderColor: `${item.tone.color}33` }}>
                     <span className="status-dot" style={{ backgroundColor: item.tone.color, color: item.tone.color }} />
-                    {item.status}
+                    {item.tone.label}
                   </span>
                 </div>
               ))}
@@ -505,14 +581,15 @@ export default function DashboardPage() {
       </div>
 
       <div className="dashboard-fade-up grid gap-3.5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-        {metricCards.map((card) => {
+        {metricCards.map((card, index) => {
           const Icon = card.icon;
 
           return (
             <Link
               key={card.title}
               href={card.href}
-              className="panel panel-soft panel-interactive group relative overflow-hidden p-4"
+              className="panel panel-soft panel-interactive dashboard-fade-up group relative overflow-hidden p-4"
+              style={{ animationDelay: `${index * 70 + 140}ms` }}
             >
               <div
                 className="absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
@@ -543,13 +620,13 @@ export default function DashboardPage() {
                   <span className="text-[var(--color-text-muted)]">{card.meta}</span>
                   <span className="inline-flex items-center gap-1 font-semibold" style={{ color: card.accent.solid }}>
                     Open
-                    <ArrowRight className="h-3.5 w-3.5" />
+                    <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                   </span>
                 </div>
 
-                <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[rgba(255,255,255,0.06)]">
+                <div className="dashboard-progress-track mt-2.5 h-1.5">
                   <div
-                    className="h-full rounded-full"
+                    className="dashboard-progress-fill"
                     style={{ width: `${card.progress}%`, background: `linear-gradient(90deg, ${card.accent.solid}, ${card.accent.soft})` }}
                   />
                 </div>
@@ -565,6 +642,7 @@ export default function DashboardPage() {
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-text-muted)]">Recent Activity</p>
               <h2 className="mt-2 text-[1.65rem] font-semibold tracking-[-0.04em] text-[var(--color-text-strong)]">Operational timeline</h2>
+              <p className="mt-2 text-sm text-[var(--color-text-muted)]">New resident, room, and finance events animate into the timeline as the workspace updates.</p>
             </div>
             <span className="dashboard-chip">
               <BadgeCheck className="h-[0.7rem] w-[0.7rem]" />
@@ -575,7 +653,7 @@ export default function DashboardPage() {
           <div className="mt-4 space-y-2.5">
             {data.recent_activities.length === 0 ? (
               <div
-                className="rounded-[22px] border bg-[rgba(255,255,255,0.04)] px-3.5 py-3.5 text-sm text-[var(--color-text-soft)]"
+                className="dashboard-surface-card rounded-[22px] border px-3.5 py-3.5 text-sm text-[var(--color-text-soft)]"
                 style={{ borderColor: "var(--color-border)" }}
               >
                 No recent activity is available yet.
@@ -584,8 +662,8 @@ export default function DashboardPage() {
               data.recent_activities.slice(0, 5).map((activity, index) => (
                 <article
                   key={`${activity.type}-${activity.reference_id}`}
-                  className="rounded-[22px] border bg-[rgba(255,255,255,0.04)] px-3.5 py-3.5 transition hover:border-[var(--color-border-strong)]"
-                  style={{ borderColor: "var(--color-border)" }}
+                  className="dashboard-surface-card dashboard-fade-up rounded-[22px] border px-3.5 py-3.5"
+                  style={{ animationDelay: `${index * 80 + 220}ms`, borderColor: "var(--color-border)" }}
                 >
                   <div className="flex items-start gap-4">
                     <span
@@ -633,15 +711,15 @@ export default function DashboardPage() {
             </div>
 
             <div className="mt-4 space-y-2.5">
-              {attentionItems.map((item) => {
+              {attentionItems.map((item, index) => {
                 const Icon = item.icon;
 
                 return (
                   <Link
                     key={item.title}
                     href={item.href}
-                    className="group block rounded-[22px] border bg-[rgba(255,255,255,0.04)] p-3.5 transition hover:border-[var(--color-border-strong)]"
-                    style={{ borderColor: "var(--color-border)" }}
+                    className="dashboard-surface-card dashboard-fade-up group block rounded-[22px] border p-3.5"
+                    style={{ animationDelay: `${index * 90 + 280}ms`, borderColor: "var(--color-border)" }}
                   >
                     <div className="flex items-start gap-4">
                       <span
@@ -686,26 +764,35 @@ export default function DashboardPage() {
             <div className="mt-4 grid gap-2.5">
               <Link
                 href="/members"
-                className="flex items-center justify-between rounded-[20px] border px-4 py-2.5 text-sm font-semibold text-[var(--color-text-strong)] transition hover:border-[var(--color-border-strong)]"
-                style={{ borderColor: "var(--color-border)" }}
+                className="dashboard-surface-card dashboard-fade-up flex items-center justify-between rounded-[20px] border px-4 py-2.5 text-sm font-semibold text-[var(--color-text-strong)]"
+                style={{ animationDelay: "320ms", borderColor: "var(--color-border)" }}
               >
-                Member directory
+                <span>
+                  <span className="block">Member directory</span>
+                  <span className="mt-0.5 block text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Residents and profiles</span>
+                </span>
                 <ArrowRight className="h-4 w-4 text-[var(--color-text-muted)]" />
               </Link>
               <Link
                 href="/rooms"
-                className="flex items-center justify-between rounded-[20px] border px-4 py-2.5 text-sm font-semibold text-[var(--color-text-strong)] transition hover:border-[var(--color-border-strong)]"
-                style={{ borderColor: "var(--color-border)" }}
+                className="dashboard-surface-card dashboard-fade-up flex items-center justify-between rounded-[20px] border px-4 py-2.5 text-sm font-semibold text-[var(--color-text-strong)]"
+                style={{ animationDelay: "390ms", borderColor: "var(--color-border)" }}
               >
-                Room inventory
+                <span>
+                  <span className="block">Room inventory</span>
+                  <span className="mt-0.5 block text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Capacity and availability</span>
+                </span>
                 <ArrowRight className="h-4 w-4 text-[var(--color-text-muted)]" />
               </Link>
               <Link
                 href="/billing"
-                className="flex items-center justify-between rounded-[20px] border px-4 py-2.5 text-sm font-semibold text-[var(--color-text-strong)] transition hover:border-[var(--color-border-strong)]"
-                style={{ borderColor: "var(--color-border)" }}
+                className="dashboard-surface-card dashboard-fade-up flex items-center justify-between rounded-[20px] border px-4 py-2.5 text-sm font-semibold text-[var(--color-text-strong)]"
+                style={{ animationDelay: "460ms", borderColor: "var(--color-border)" }}
               >
-                Billing center
+                <span>
+                  <span className="block">Billing center</span>
+                  <span className="mt-0.5 block text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Dues and collections</span>
+                </span>
                 <ArrowRight className="h-4 w-4 text-[var(--color-text-muted)]" />
               </Link>
             </div>
