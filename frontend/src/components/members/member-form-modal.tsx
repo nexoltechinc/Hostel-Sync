@@ -116,9 +116,9 @@ export function MemberFormModal({
   }
 
   return (
-    <div className="fixed inset-0 z-40 grid place-items-center bg-slate-950/65 p-4">
-      <div className="panel max-h-[95vh] w-full max-w-3xl overflow-y-auto p-5 md:p-6">
-        <div className="mb-4 flex items-start justify-between gap-3">
+    <div className="fixed inset-0 z-40 bg-slate-950/65 sm:grid sm:place-items-center sm:p-4">
+      <div className="panel flex h-[100dvh] w-full flex-col rounded-none border-0 sm:h-auto sm:max-h-[95vh] sm:max-w-3xl sm:rounded-[1.75rem] sm:border">
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b bg-[var(--color-surface)]/95 px-4 py-4 backdrop-blur md:px-6" style={{ borderColor: "var(--color-border)" }}>
           <div>
             <h2 className="text-lg font-semibold text-slate-900">{mode === "create" ? "Create Member" : "Edit Member"}</h2>
             <p className="text-sm text-slate-600">Maintain member profile and lifecycle details.</p>
@@ -134,7 +134,7 @@ export function MemberFormModal({
         </div>
 
         <form
-          className="space-y-4"
+          className="flex min-h-0 flex-1 flex-col"
           onSubmit={form.handleSubmit(async (values) => {
             if (showHostelField && !values.hostel?.trim()) {
               form.setError("hostel", { type: "manual", message: "Hostel id is required for superuser accounts." });
@@ -158,38 +158,39 @@ export function MemberFormModal({
             });
           })}
         >
-          <div className="grid gap-3 md:grid-cols-2">
-            {showHostelField ? (
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6">
+            <div className="grid gap-3 md:grid-cols-2">
+              {showHostelField ? (
+                <label className="space-y-1">
+                  <span className="text-sm font-medium text-slate-700">Hostel ID</span>
+                  <input
+                    type="number"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                    {...form.register("hostel")}
+                  />
+                  {form.formState.errors.hostel ? (
+                    <span className="text-xs text-rose-600">{form.formState.errors.hostel.message}</span>
+                  ) : null}
+                </label>
+              ) : null}
+
               <label className="space-y-1">
-                <span className="text-sm font-medium text-slate-700">Hostel ID</span>
+                <span className="text-sm font-medium text-slate-700">Member Code</span>
                 <input
-                  type="number"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
-                  {...form.register("hostel")}
+                  type="text"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                  {...form.register("member_code")}
                 />
-                {form.formState.errors.hostel ? (
-                  <span className="text-xs text-rose-600">{form.formState.errors.hostel.message}</span>
+                {form.formState.errors.member_code ? (
+                  <span className="text-xs text-rose-600">{form.formState.errors.member_code.message}</span>
                 ) : null}
               </label>
-            ) : null}
-
-            <label className="space-y-1">
-              <span className="text-sm font-medium text-slate-700">Member Code</span>
-              <input
-                type="text"
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
-                {...form.register("member_code")}
-              />
-              {form.formState.errors.member_code ? (
-                <span className="text-xs text-rose-600">{form.formState.errors.member_code.message}</span>
-              ) : null}
-            </label>
 
             <label className="space-y-1">
               <span className="text-sm font-medium text-slate-700">Full Name</span>
               <input
                 type="text"
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
                 {...form.register("full_name")}
               />
               {form.formState.errors.full_name ? (
@@ -201,7 +202,7 @@ export function MemberFormModal({
               <span className="text-sm font-medium text-slate-700">Phone</span>
               <input
                 type="text"
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
                 {...form.register("phone")}
               />
               {form.formState.errors.phone ? (
@@ -213,7 +214,7 @@ export function MemberFormModal({
               <span className="text-sm font-medium text-slate-700">Guardian Name</span>
               <input
                 type="text"
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
                 {...form.register("guardian_name")}
               />
             </label>
@@ -222,7 +223,7 @@ export function MemberFormModal({
               <span className="text-sm font-medium text-slate-700">Emergency Contact</span>
               <input
                 type="text"
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
                 {...form.register("emergency_contact")}
               />
               {form.formState.errors.emergency_contact ? (
@@ -234,7 +235,7 @@ export function MemberFormModal({
               <span className="text-sm font-medium text-slate-700">Joining Date</span>
               <input
                 type="date"
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
                 {...form.register("joining_date")}
               />
               {form.formState.errors.joining_date ? (
@@ -245,7 +246,7 @@ export function MemberFormModal({
             <label className="space-y-1">
               <span className="text-sm font-medium text-slate-700">Gender</span>
               <select
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
                 {...form.register("gender")}
               >
                 <option value="male">Male</option>
@@ -257,7 +258,7 @@ export function MemberFormModal({
             <label className="space-y-1">
               <span className="text-sm font-medium text-slate-700">Status</span>
               <select
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
                 {...form.register("status")}
               >
                 <option value="active">Active</option>
@@ -271,7 +272,7 @@ export function MemberFormModal({
                 <span className="text-sm font-medium text-slate-700">Leaving Date</span>
                 <input
                   type="date"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
                   {...form.register("leaving_date")}
                 />
                 {form.formState.errors.leaving_date ? (
@@ -284,7 +285,7 @@ export function MemberFormModal({
               <span className="text-sm font-medium text-slate-700">ID Number</span>
               <input
                 type="text"
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
                 {...form.register("id_number")}
               />
             </label>
@@ -293,7 +294,7 @@ export function MemberFormModal({
               <span className="text-sm font-medium text-slate-700">Address</span>
               <textarea
                 rows={2}
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
                 {...form.register("address")}
               />
             </label>
@@ -302,24 +303,25 @@ export function MemberFormModal({
               <span className="text-sm font-medium text-slate-700">Remarks</span>
               <textarea
                 rows={3}
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
                 {...form.register("remarks")}
               />
             </label>
           </div>
+          </div>
 
-          <div className="flex items-center justify-end gap-2 pt-2">
+          <div className="sticky bottom-0 flex flex-col gap-2 border-t bg-[var(--color-surface)]/95 px-4 py-4 backdrop-blur sm:flex-row sm:items-center sm:justify-end md:px-6" style={{ borderColor: "var(--color-border)" }}>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 sm:w-auto"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-xl bg-[var(--color-brand-600)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--color-brand-700)] disabled:cursor-not-allowed disabled:opacity-70"
+              className="w-full rounded-xl bg-[var(--color-brand-600)] px-4 py-3 text-sm font-medium text-white transition hover:bg-[var(--color-brand-700)] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
             >
               {isSubmitting ? "Saving..." : mode === "create" ? "Create Member" : "Update Member"}
             </button>

@@ -1,9 +1,13 @@
 "use client";
 
 import {
+  ArrowLeft,
+  ArrowRight,
   BadgeCheck,
   BedSingle,
   Building2,
+  Filter,
+  Layers3,
   LoaderCircle,
   Pencil,
   Plus,
@@ -11,8 +15,11 @@ import {
   Trash2,
   TriangleAlert,
 } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { IconBadge } from "@/components/ui/icon-badge";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { BedFormModal } from "@/components/rooms/bed-form-modal";
 import { RoomFormModal } from "@/components/rooms/room-form-modal";
 import {
@@ -25,6 +32,7 @@ import {
   useUpdateRoom,
 } from "@/hooks/use-rooms";
 import { useSession } from "@/hooks/use-session";
+import { moduleIcons } from "@/lib/app-icons";
 import type { RoomsQueryParams } from "@/lib/api";
 import type { Bed, BedWritePayload, Room, RoomType, RoomWritePayload } from "@/lib/types";
 
@@ -238,13 +246,12 @@ export default function RoomsPage() {
   return (
     <section className="space-y-6">
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Module 4</p>
-          <h1 className="text-2xl font-semibold text-slate-900">Room Management</h1>
-          <p className="text-sm text-slate-600">
-            Manage room inventory, bed-level structure, and availability with real-time occupancy visibility.
-          </p>
-        </div>
+        <SectionHeading
+          icon={moduleIcons.rooms}
+          eyebrow="Module 4"
+          title="Room Management"
+          description="Manage room inventory, bed-level structure, and availability with real-time occupancy visibility."
+        />
 
         {canManageRooms ? (
           <div className="flex flex-wrap items-center gap-2">
@@ -254,7 +261,7 @@ export default function RoomsPage() {
                 setEditingRoom(null);
                 setIsRoomModalOpen(true);
               }}
-              className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-brand-600)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--color-brand-700)]"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-brand-600)] px-4 py-3 text-sm font-medium text-white transition hover:bg-[var(--color-brand-700)] sm:w-auto"
             >
               <Building2 className="h-4 w-4" />
               New Room
@@ -265,7 +272,7 @@ export default function RoomsPage() {
                 setSelectedRoomForBed(undefined);
                 setIsBedModalOpen(true);
               }}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 sm:w-auto"
             >
               <Plus className="h-4 w-4" />
               New Bed
@@ -280,7 +287,14 @@ export default function RoomsPage() {
       {errorMessage ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{errorMessage}</div> : null}
 
       <section className="panel p-4 md:p-5">
-        <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto]">
+        <div className="mb-4 flex items-center gap-2">
+          <IconBadge icon={Filter} size="sm" />
+          <div>
+            <p className="text-sm font-medium text-slate-900">Inventory filters</p>
+            <p className="text-xs text-slate-500">Narrow rooms by type, active state, and room code without losing occupancy context.</p>
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_180px_180px]">
           <label className="relative block">
             <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <input
@@ -291,7 +305,7 @@ export default function RoomsPage() {
                 setSearchInput(event.target.value);
               }}
               placeholder="Search by room number or floor"
-              className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm outline-none transition focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+              className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-9 pr-3 text-sm outline-none transition focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)] sm:col-span-2 xl:col-span-1"
             />
           </label>
 
@@ -301,7 +315,7 @@ export default function RoomsPage() {
               setPage(1);
               setRoomTypeFilter(event.target.value as RoomType | "all");
             }}
-            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+            className="rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none transition focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
           >
             <option value="all">All room types</option>
             <option value="standard">Standard</option>
@@ -319,7 +333,7 @@ export default function RoomsPage() {
               }
               setActiveFilter(event.target.value === "true");
             }}
-            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+            className="rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none transition focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
           >
             <option value="all">All rooms</option>
             <option value="true">Active only</option>
@@ -353,7 +367,9 @@ export default function RoomsPage() {
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-lg font-semibold text-slate-900">{room.room_code}</h2>
+                    <Link href={`/rooms/${room.id}`} className="text-lg font-semibold text-slate-900 hover:text-[var(--color-brand-700)]">
+                      {room.room_code}
+                    </Link>
                     <span className="rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
                       {roomTypeLabel(room.room_type)}
                     </span>
@@ -368,20 +384,29 @@ export default function RoomsPage() {
                   </p>
                 </div>
 
-                <div className="grid gap-2 sm:grid-cols-3">
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                    <p className="text-xs uppercase tracking-[0.08em] text-slate-500">Capacity</p>
-                    <p className="text-sm font-semibold text-slate-800">{room.capacity}</p>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                    <p className="text-xs uppercase tracking-[0.08em] text-slate-500">Occupied</p>
-                    <p className="text-sm font-semibold text-slate-800">{room.occupied_beds}</p>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                    <p className="text-xs uppercase tracking-[0.08em] text-slate-500">Available</p>
-                    <p className="text-sm font-semibold text-slate-800">{room.available_beds}</p>
-                  </div>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                  <p className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.08em] text-slate-500">
+                    <Layers3 className="h-3.5 w-3.5" />
+                    Capacity
+                  </p>
+                  <p className="text-sm font-semibold text-slate-800">{room.capacity}</p>
                 </div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                  <p className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.08em] text-slate-500">
+                    <BedSingle className="h-3.5 w-3.5" />
+                    Occupied
+                  </p>
+                  <p className="text-sm font-semibold text-slate-800">{room.occupied_beds}</p>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                  <p className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.08em] text-slate-500">
+                    <BadgeCheck className="h-3.5 w-3.5" />
+                    Available
+                  </p>
+                  <p className="text-sm font-semibold text-slate-800">{room.available_beds}</p>
+                </div>
+              </div>
               </div>
 
               <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-slate-700">
@@ -462,7 +487,10 @@ export default function RoomsPage() {
                       return (
                         <div key={bed.id} className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
                           <div>
-                            <p className="text-sm font-medium text-slate-800">{bed.label}</p>
+                            <p className="inline-flex items-center gap-2 text-sm font-medium text-slate-800">
+                              <BedSingle className="h-4 w-4 text-slate-400" />
+                              {bed.label}
+                            </p>
                             <span className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${state.className}`}>
                               {state.label}
                             </span>
@@ -498,15 +526,16 @@ export default function RoomsPage() {
         )}
       </section>
 
-      <section className="flex items-center justify-between gap-3">
+      <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-slate-600">Total rooms: {roomsQuery.data?.count ?? 0}</p>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setPage((value) => Math.max(value - 1, 1))}
             disabled={!roomsQuery.data?.previous || roomsQuery.isLoading}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
           >
+            <ArrowLeft className="h-4 w-4" />
             Previous
           </button>
           <span className="text-sm text-slate-600">Page {page}</span>
@@ -514,9 +543,10 @@ export default function RoomsPage() {
             type="button"
             onClick={() => setPage((value) => value + 1)}
             disabled={!roomsQuery.data?.next || roomsQuery.isLoading}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Next
+            <ArrowRight className="h-4 w-4" />
           </button>
         </div>
       </section>

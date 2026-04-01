@@ -32,14 +32,19 @@ type WebRequestOptions = {
 };
 
 async function webRequest<T>(path: string, options: WebRequestOptions = {}) {
-  const response = await fetch(path, {
-    method: options.method ?? "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: options.body ? JSON.stringify(options.body) : undefined,
-    credentials: "include",
-  });
+  let response: Response;
+  try {
+    response = await fetch(path, {
+      method: options.method ?? "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: options.body ? JSON.stringify(options.body) : undefined,
+      credentials: "include",
+    });
+  } catch {
+    throw new Error("Unable to reach the application server. Refresh the page and try again.");
+  }
 
   const payload = (await response.json().catch(() => null)) as T | { detail?: string } | null;
   if (!response.ok) {
@@ -245,6 +250,10 @@ export function createMember(payload: MemberWritePayload) {
   return webRequest<Member>("/api/members", { method: "POST", body: payload });
 }
 
+export function getMember(memberId: number) {
+  return webRequest<Member>(`/api/members/${memberId}`);
+}
+
 export function updateMember(memberId: number, payload: MemberUpdatePayload) {
   return webRequest<Member>(`/api/members/${memberId}`, { method: "PATCH", body: payload });
 }
@@ -261,6 +270,10 @@ export function getRooms(params: RoomsQueryParams = {}) {
 
 export function createRoom(payload: RoomWritePayload) {
   return webRequest<Room>("/api/rooms", { method: "POST", body: payload });
+}
+
+export function getRoom(roomId: number) {
+  return webRequest<Room>(`/api/rooms/${roomId}`);
 }
 
 export function updateRoom(roomId: number, payload: RoomUpdatePayload) {

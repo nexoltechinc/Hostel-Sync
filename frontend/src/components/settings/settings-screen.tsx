@@ -1,13 +1,16 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Bell, Building2, Clock3, LoaderCircle, Palette, Save, ShieldCheck, Wallet } from "lucide-react";
+import { Bell, Building2, Clock3, Globe2, LoaderCircle, Mail, MapPinned, Palette, Phone, Save, ShieldCheck, Wallet } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
+import { IconBadge } from "@/components/ui/icon-badge";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { useSession } from "@/hooks/use-session";
 import { useSettings, useUpdateSettings } from "@/hooks/use-settings";
+import { moduleIcons } from "@/lib/app-icons";
 import type { SettingsRecord, SettingsUpdatePayload } from "@/lib/types";
 
 const hexColorPattern = /^#[0-9A-Fa-f]{6}$/;
@@ -125,9 +128,9 @@ function formatCurrency(value: number, currencyCode: string) {
 
 function SectionCard({ icon, title, description, children }: { icon: ReactNode; title: string; description: string; children: ReactNode }) {
   return (
-    <section className="panel p-5">
+    <section className="panel p-4 sm:p-5">
       <div className="mb-4 flex items-start gap-3">
-        <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600">{icon}</span>
+        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">{icon}</span>
         <div>
           <h2 className="text-base font-semibold text-slate-900">{title}</h2>
           <p className="text-sm text-slate-600">{description}</p>
@@ -138,20 +141,26 @@ function SectionCard({ icon, title, description, children }: { icon: ReactNode; 
   );
 }
 
-function FieldGroup({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
+function FieldGroup({ label, error, icon, children }: { label: string; error?: string; icon?: ReactNode; children: ReactNode }) {
   return (
     <label className="space-y-1">
-      <span className="text-sm font-medium text-slate-700">{label}</span>
+      <span className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+        {icon ? <span className="text-slate-400">{icon}</span> : null}
+        {label}
+      </span>
       {children}
       {error ? <span className="text-xs text-rose-600">{error}</span> : null}
     </label>
   );
 }
 
-function ToggleRow({ label, children }: { label: string; children: ReactNode }) {
+function ToggleRow({ label, icon, children }: { label: string; icon?: ReactNode; children: ReactNode }) {
   return (
-    <label className="inline-flex items-center justify-between gap-3 rounded-xl border border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-700">
-      <span>{label}</span>
+    <label className="flex flex-col gap-3 rounded-xl border border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-700 sm:flex-row sm:items-center sm:justify-between">
+      <span className="inline-flex items-center gap-2">
+        {icon ? <span className="text-slate-400">{icon}</span> : null}
+        {label}
+      </span>
       {children}
     </label>
   );
@@ -237,11 +246,7 @@ export function SettingsScreen() {
   if (!canManageSettings) {
     return (
       <section className="space-y-4">
-        <header className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Module 10</p>
-          <h1 className="text-2xl font-semibold text-slate-900">Settings</h1>
-          <p className="text-sm text-slate-600">Centralized configuration, defaults, and governance controls.</p>
-        </header>
+        <SectionHeading icon={moduleIcons.settings} eyebrow="Module 10" title="Settings" description="Centralized configuration, defaults, and governance controls." />
         <div className="panel p-6 text-sm text-slate-600">
           Your account does not currently have permission to manage hostel settings.
         </div>
@@ -252,11 +257,7 @@ export function SettingsScreen() {
   if (settingsQuery.isError || !record) {
     return (
       <section className="space-y-4">
-        <header className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Module 10</p>
-          <h1 className="text-2xl font-semibold text-slate-900">Settings</h1>
-          <p className="text-sm text-slate-600">Centralized configuration, defaults, and governance controls.</p>
-        </header>
+        <SectionHeading icon={moduleIcons.settings} eyebrow="Module 10" title="Settings" description="Centralized configuration, defaults, and governance controls." />
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {settingsQuery.error instanceof Error ? settingsQuery.error.message : "Failed to load settings."}
         </div>
@@ -267,14 +268,13 @@ export function SettingsScreen() {
   return (
     <section className="space-y-6">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Module 10</p>
-          <h1 className="text-2xl font-semibold text-slate-900">Settings</h1>
-          <p className="text-sm text-slate-600">
-            Configure hostel identity, financial defaults, operational rules, and role-sensitive governance.
-          </p>
-        </div>
-        <div className="text-right text-sm text-slate-600">
+        <SectionHeading
+          icon={moduleIcons.settings}
+          eyebrow="Module 10"
+          title="Settings"
+          description="Configure hostel identity, financial defaults, operational rules, and role-sensitive governance."
+        />
+        <div className="text-left text-sm text-slate-600 lg:text-right">
           <p className="font-medium text-slate-900">{record.hostel.name}</p>
           <p>
             Last updated {formatDateTime(record.updated_at)}
@@ -286,23 +286,38 @@ export function SettingsScreen() {
       {feedback ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{feedback}</div> : null}
       {errorMessage ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{errorMessage}</div> : null}
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <article className="panel p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
           <p className="text-sm font-medium text-slate-600">Hostel Code</p>
           <p className="mt-2 text-2xl font-semibold text-slate-900">{record.hostel.code}</p>
           <p className="mt-1 text-xs text-slate-500">{record.hostel.is_active ? "Operational" : "Inactive"}</p>
+            </div>
+            <IconBadge icon={Building2} />
+          </div>
         </article>
         <article className="panel p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
           <p className="text-sm font-medium text-slate-600">Billing Default</p>
           <p className="mt-2 text-2xl font-semibold text-slate-900">{financial.invoice_due_day}</p>
           <p className="mt-1 text-xs text-slate-500">Invoice due day each month</p>
+            </div>
+            <IconBadge icon={Clock3} />
+          </div>
         </article>
         <article className="panel p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
           <p className="text-sm font-medium text-slate-600">Security Deposit</p>
           <p className="mt-2 text-2xl font-semibold text-slate-900">
             {formatCurrency(financial.default_security_deposit, financial.currency_code)}
           </p>
           <p className="mt-1 text-xs text-slate-500">Default financial baseline</p>
+            </div>
+            <IconBadge icon={Wallet} />
+          </div>
         </article>
       </div>
 
@@ -310,25 +325,25 @@ export function SettingsScreen() {
         <div className="grid gap-6 xl:grid-cols-2">
           <SectionCard icon={<Building2 className="h-5 w-5" />} title="Hostel Profile" description="Identity and operational context used across the platform.">
             <div className="grid gap-3 md:grid-cols-2">
-              <FieldGroup label="Hostel Name" error={form.formState.errors.hostel?.name?.message}>
+              <FieldGroup label="Hostel Name" error={form.formState.errors.hostel?.name?.message} icon={<Building2 className="h-4 w-4" />}>
                 <input className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("hostel.name")} />
               </FieldGroup>
-              <FieldGroup label="Hostel Code" error={form.formState.errors.hostel?.code?.message}>
+              <FieldGroup label="Hostel Code" error={form.formState.errors.hostel?.code?.message} icon={<Building2 className="h-4 w-4" />}>
                 <input className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm uppercase outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("hostel.code")} />
               </FieldGroup>
-              <FieldGroup label="Email" error={form.formState.errors.hostel?.email?.message}>
+              <FieldGroup label="Email" error={form.formState.errors.hostel?.email?.message} icon={<Mail className="h-4 w-4" />}>
                 <input type="email" className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("hostel.email")} />
               </FieldGroup>
-              <FieldGroup label="Phone" error={undefined}>
+              <FieldGroup label="Phone" error={undefined} icon={<Phone className="h-4 w-4" />}>
                 <input className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("hostel.phone")} />
               </FieldGroup>
-              <FieldGroup label="Timezone" error={form.formState.errors.hostel?.timezone?.message}>
+              <FieldGroup label="Timezone" error={form.formState.errors.hostel?.timezone?.message} icon={<Globe2 className="h-4 w-4" />}>
                 <input className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("hostel.timezone")} />
               </FieldGroup>
-              <FieldGroup label="Address" error={undefined}>
+              <FieldGroup label="Address" error={undefined} icon={<MapPinned className="h-4 w-4" />}>
                 <textarea rows={3} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("hostel.address")} />
               </FieldGroup>
-              <ToggleRow label="Hostel is active">
+              <ToggleRow label="Hostel is active" icon={<ShieldCheck className="h-4 w-4" />}>
                 <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("hostel.is_active")} />
               </ToggleRow>
             </div>
@@ -336,16 +351,16 @@ export function SettingsScreen() {
 
           <SectionCard icon={<Palette className="h-5 w-5" />} title="Branding" description="Visual identity and public-facing profile settings.">
             <div className="grid gap-3 md:grid-cols-2">
-              <FieldGroup label="Brand Name" error={undefined}>
+              <FieldGroup label="Brand Name" error={undefined} icon={<Palette className="h-4 w-4" />}>
                 <input className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("branding.brand_name")} />
               </FieldGroup>
-              <FieldGroup label="Website URL" error={form.formState.errors.branding?.website_url?.message}>
+              <FieldGroup label="Website URL" error={form.formState.errors.branding?.website_url?.message} icon={<Globe2 className="h-4 w-4" />}>
                 <input className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("branding.website_url")} />
               </FieldGroup>
-              <FieldGroup label="Primary Color" error={form.formState.errors.branding?.primary_color?.message}>
+              <FieldGroup label="Primary Color" error={form.formState.errors.branding?.primary_color?.message} icon={<Palette className="h-4 w-4" />}>
                 <input className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-mono text-sm uppercase outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("branding.primary_color")} />
               </FieldGroup>
-              <FieldGroup label="Accent Color" error={form.formState.errors.branding?.accent_color?.message}>
+              <FieldGroup label="Accent Color" error={form.formState.errors.branding?.accent_color?.message} icon={<Palette className="h-4 w-4" />}>
                 <input className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-mono text-sm uppercase outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("branding.accent_color")} />
               </FieldGroup>
             </div>
@@ -355,25 +370,25 @@ export function SettingsScreen() {
         <div className="grid gap-6 xl:grid-cols-2">
           <SectionCard icon={<Wallet className="h-5 w-5" />} title="Financial Defaults" description="Default fee timing and payment behavior.">
             <div className="grid gap-3 md:grid-cols-2">
-              <FieldGroup label="Currency Code" error={form.formState.errors.financial?.currency_code?.message}>
+              <FieldGroup label="Currency Code" error={form.formState.errors.financial?.currency_code?.message} icon={<Wallet className="h-4 w-4" />}>
                 <input maxLength={3} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm uppercase outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("financial.currency_code")} />
               </FieldGroup>
-              <FieldGroup label="Invoice Due Day" error={undefined}>
+              <FieldGroup label="Invoice Due Day" error={undefined} icon={<Clock3 className="h-4 w-4" />}>
                 <input type="number" min={1} max={28} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("financial.invoice_due_day", { valueAsNumber: true })} />
               </FieldGroup>
-              <FieldGroup label="Late Fee Amount" error={undefined}>
+              <FieldGroup label="Late Fee Amount" error={undefined} icon={<Wallet className="h-4 w-4" />}>
                 <input type="number" min={0} step="0.01" className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("financial.late_fee_amount", { valueAsNumber: true })} />
               </FieldGroup>
-              <FieldGroup label="Default Security Deposit" error={undefined}>
+              <FieldGroup label="Default Security Deposit" error={undefined} icon={<Wallet className="h-4 w-4" />}>
                 <input type="number" min={0} step="0.01" className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("financial.default_security_deposit", { valueAsNumber: true })} />
               </FieldGroup>
-              <FieldGroup label="Default Admission Fee" error={undefined}>
+              <FieldGroup label="Default Admission Fee" error={undefined} icon={<Wallet className="h-4 w-4" />}>
                 <input type="number" min={0} step="0.01" className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("financial.default_admission_fee", { valueAsNumber: true })} />
               </FieldGroup>
-              <ToggleRow label="Allow partial payments">
+              <ToggleRow label="Allow partial payments" icon={<Wallet className="h-4 w-4" />}>
                 <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("financial.allow_partial_payments")} />
               </ToggleRow>
-              <ToggleRow label="Auto-apply member credit">
+              <ToggleRow label="Auto-apply member credit" icon={<Wallet className="h-4 w-4" />}>
                 <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("financial.auto_apply_member_credit")} />
               </ToggleRow>
             </div>
@@ -381,19 +396,19 @@ export function SettingsScreen() {
 
           <SectionCard icon={<Bell className="h-5 w-5" />} title="Notification Policies" description="Reminders, announcements, and attendance alerts.">
             <div className="grid gap-3 md:grid-cols-2">
-              <ToggleRow label="Enable announcements">
+              <ToggleRow label="Enable announcements" icon={<Bell className="h-4 w-4" />}>
                 <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("notifications.enable_announcements")} />
               </ToggleRow>
-              <ToggleRow label="Enable fee reminders">
+              <ToggleRow label="Enable fee reminders" icon={<Bell className="h-4 w-4" />}>
                 <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("notifications.enable_fee_reminders")} />
               </ToggleRow>
-              <FieldGroup label="Reminder Days Before Due Date" error={undefined}>
+              <FieldGroup label="Reminder Days Before Due Date" error={undefined} icon={<Clock3 className="h-4 w-4" />}>
                 <input type="number" min={0} max={30} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("notifications.fee_reminder_days_before", { valueAsNumber: true })} />
               </FieldGroup>
-              <FieldGroup label="Reminder Days After Due Date" error={undefined}>
+              <FieldGroup label="Reminder Days After Due Date" error={undefined} icon={<Clock3 className="h-4 w-4" />}>
                 <input type="number" min={0} max={30} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("notifications.fee_reminder_days_after", { valueAsNumber: true })} />
               </FieldGroup>
-              <ToggleRow label="Enable attendance alerts">
+              <ToggleRow label="Enable attendance alerts" icon={<Bell className="h-4 w-4" />}>
                 <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("notifications.enable_attendance_alerts")} />
               </ToggleRow>
             </div>
@@ -403,16 +418,16 @@ export function SettingsScreen() {
         <div className="grid gap-6 xl:grid-cols-2">
           <SectionCard icon={<Clock3 className="h-5 w-5" />} title="Operations" description="Attendance timing and checkout policy controls.">
             <div className="grid gap-3 md:grid-cols-2">
-              <FieldGroup label="Attendance Cutoff Time" error={undefined}>
+              <FieldGroup label="Attendance Cutoff Time" error={undefined} icon={<Clock3 className="h-4 w-4" />}>
                 <input type="time" className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("operations.attendance_cutoff_time")} />
               </FieldGroup>
-              <FieldGroup label="Checkout Notice Days" error={undefined}>
+              <FieldGroup label="Checkout Notice Days" error={undefined} icon={<Clock3 className="h-4 w-4" />}>
                 <input type="number" min={0} max={60} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("operations.checkout_notice_days", { valueAsNumber: true })} />
               </FieldGroup>
-              <ToggleRow label="Allow attendance corrections">
+              <ToggleRow label="Allow attendance corrections" icon={<Clock3 className="h-4 w-4" />}>
                 <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("operations.allow_attendance_corrections")} />
               </ToggleRow>
-              <ToggleRow label="Require checkout clearance">
+              <ToggleRow label="Require checkout clearance" icon={<ShieldCheck className="h-4 w-4" />}>
                 <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("operations.require_checkout_clearance")} />
               </ToggleRow>
             </div>
@@ -420,23 +435,23 @@ export function SettingsScreen() {
 
           <SectionCard icon={<ShieldCheck className="h-5 w-5" />} title="Access Policies" description="Decide which roles inherit extra management and reporting visibility.">
             <div className="space-y-3">
-              <ToggleRow label="Allow admins to manage staff users">
+              <ToggleRow label="Allow admins to manage staff users" icon={<ShieldCheck className="h-4 w-4" />}>
                 <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("access.allow_admin_manage_users")} />
               </ToggleRow>
-              <ToggleRow label="Allow admins to manage hostel settings">
+              <ToggleRow label="Allow admins to manage hostel settings" icon={<ShieldCheck className="h-4 w-4" />}>
                 <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("access.allow_admin_manage_hostel_settings")} />
               </ToggleRow>
-              <ToggleRow label="Allow wardens to view reports">
+              <ToggleRow label="Allow wardens to view reports" icon={<ShieldCheck className="h-4 w-4" />}>
                 <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("access.allow_warden_view_reports")} />
               </ToggleRow>
-              <ToggleRow label="Allow staff to view reports">
+              <ToggleRow label="Allow staff to view reports" icon={<ShieldCheck className="h-4 w-4" />}>
                 <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("access.allow_staff_view_reports")} />
               </ToggleRow>
             </div>
           </SectionCard>
         </div>
 
-        <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="sticky bottom-3 z-20 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50/95 px-4 py-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-slate-600">
             These settings affect billing defaults, communication behavior, reporting visibility, and operational workflow rules.
           </p>

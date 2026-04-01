@@ -5,11 +5,13 @@ import {
   ACCESS_COOKIE_MAX_AGE_SECONDS,
   REFRESH_COOKIE,
   REFRESH_COOKIE_MAX_AGE_SECONDS,
+  shouldUseSecureAuthCookies,
 } from "@/lib/auth/constants";
 import { backendRequest } from "@/lib/server/backend";
 import type { AuthResponse } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
+  const secureCookies = shouldUseSecureAuthCookies();
   const body = (await request.json().catch(() => null)) as { username?: string; password?: string } | null;
   if (!body?.username || !body?.password) {
     return NextResponse.json({ detail: "Username and password are required." }, { status: 400 });
@@ -30,14 +32,14 @@ export async function POST(request: NextRequest) {
   result.cookies.set(ACCESS_COOKIE, authPayload.access, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: secureCookies,
     path: "/",
     maxAge: ACCESS_COOKIE_MAX_AGE_SECONDS,
   });
   result.cookies.set(REFRESH_COOKIE, authPayload.refresh, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: secureCookies,
     path: "/",
     maxAge: REFRESH_COOKIE_MAX_AGE_SECONDS,
   });

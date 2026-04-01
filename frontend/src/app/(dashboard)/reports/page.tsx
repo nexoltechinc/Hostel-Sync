@@ -3,21 +3,23 @@
 import {
   BedSingle,
   Building2,
-  CalendarCheck2,
+  CalendarRange,
   CreditCard,
+  Filter,
   LoaderCircle,
-  SearchCheck,
   TriangleAlert,
   Wallet,
 } from "lucide-react";
 import { useDeferredValue, useState } from "react";
 
+import { IconBadge } from "@/components/ui/icon-badge";
+import { SectionHeading } from "@/components/ui/section-heading";
 import {
-  useAttendanceReport,
   useFeeCollectionReport,
   useOccupancyReport,
   usePendingDuesReport,
 } from "@/hooks/use-reports";
+import { moduleIcons } from "@/lib/app-icons";
 import type { RoomType } from "@/lib/types";
 
 function dateInputValue(offsetDays = 0) {
@@ -127,54 +129,63 @@ export default function ReportsPage() {
     only_overdue: onlyOverdue,
     due_on_or_before: deferredDateTo,
   });
-  const attendanceQuery = useAttendanceReport({
-    date_from: deferredDateFrom,
-    date_to: deferredDateTo,
-  });
-
   const occupancyState = reportSectionState(occupancyQuery.isLoading, occupancyQuery.isError, occupancyQuery.error);
   const feeCollectionState = reportSectionState(feeCollectionQuery.isLoading, feeCollectionQuery.isError, feeCollectionQuery.error);
   const pendingDuesState = reportSectionState(pendingDuesQuery.isLoading, pendingDuesQuery.isError, pendingDuesQuery.error);
-  const attendanceState = reportSectionState(attendanceQuery.isLoading, attendanceQuery.isError, attendanceQuery.error);
 
   return (
     <section className="space-y-6">
-      <header className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Module 9</p>
-        <h1 className="text-2xl font-semibold text-slate-900">Reports</h1>
-        <p className="text-sm text-slate-600">
-          Management-ready visibility across occupancy, collections, dues, and attendance with shared operational filters.
-        </p>
-      </header>
+      <SectionHeading
+        icon={moduleIcons.reports}
+        eyebrow="Module 9"
+        title="Reports"
+        description="Management-ready visibility across occupancy, collections, dues, and attendance with shared operational filters."
+      />
 
       <section className="panel p-4 md:p-5">
-        <div className="grid gap-3 xl:grid-cols-[repeat(4,minmax(0,1fr))]">
+        <div className="mb-4 flex items-center gap-2">
+          <IconBadge icon={Filter} size="sm" />
+          <div>
+            <p className="text-sm font-medium text-slate-900">Shared report filters</p>
+            <p className="text-xs text-slate-500">Keep occupancy, collections, dues, and attendance analysis aligned from one control set.</p>
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[repeat(4,minmax(0,1fr))]">
           <label className="space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Date From</span>
+            <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+              <CalendarRange className="h-3.5 w-3.5" />
+              Date From
+            </span>
             <input
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none transition focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
             />
           </label>
 
           <label className="space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Date To</span>
+            <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+              <CalendarRange className="h-3.5 w-3.5" />
+              Date To
+            </span>
             <input
               type="date"
               value={dateTo}
               onChange={(event) => setDateTo(event.target.value)}
-              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none transition focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
             />
           </label>
 
           <label className="space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Room Type</span>
+            <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+              <Building2 className="h-3.5 w-3.5" />
+              Room Type
+            </span>
             <select
               value={roomType}
               onChange={(event) => setRoomType(event.target.value as RoomType | "all")}
-              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none transition focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
             >
               <option value="all">All room types</option>
               <option value="standard">Standard</option>
@@ -184,7 +195,10 @@ export default function ReportsPage() {
           </label>
 
           <label className="space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Room Status</span>
+            <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+              <BedSingle className="h-3.5 w-3.5" />
+              Room Status
+            </span>
             <select
               value={activeRoomFilter === "all" ? "all" : activeRoomFilter ? "true" : "false"}
               onChange={(event) => {
@@ -194,7 +208,7 @@ export default function ReportsPage() {
                 }
                 setActiveRoomFilter(event.target.value === "true");
               }}
-              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none transition focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
             >
               <option value="all">All rooms</option>
               <option value="true">Active only</option>
@@ -214,41 +228,41 @@ export default function ReportsPage() {
         </label>
       </section>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <article className="panel p-5">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <a href="#occupancy-report" className="group panel block p-5 transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-[var(--color-brand-400)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-400)]">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600">Occupancy</p>
+              <p className="text-sm font-medium text-slate-600 transition-colors group-hover:text-[var(--color-brand-600)]">Occupancy</p>
               <p className="mt-2 text-2xl font-semibold text-slate-900">
                 {occupancyQuery.data ? formatPercent(occupancyQuery.data.summary.occupancy_rate) : "N/A"}
               </p>
               <p className="mt-1 text-xs text-slate-500">{roomTypeLabel(roomType)}</p>
             </div>
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600 transition-transform group-hover:scale-110 group-hover:bg-[var(--color-brand-50)] group-hover:text-[var(--color-brand-600)]">
               <BedSingle className="h-4 w-4" />
             </span>
           </div>
-        </article>
+        </a>
 
-        <article className="panel p-5">
+        <a href="#collections-report" className="group panel block p-5 transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-[var(--color-brand-400)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-400)]">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600">Collections</p>
+              <p className="text-sm font-medium text-slate-600 transition-colors group-hover:text-[var(--color-brand-600)]">Collections</p>
               <p className="mt-2 text-2xl font-semibold text-slate-900">
                 {feeCollectionQuery.data ? formatCurrency(feeCollectionQuery.data.summary.total_collected) : "N/A"}
               </p>
               <p className="mt-1 text-xs text-slate-500">For selected date range</p>
             </div>
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600 transition-transform group-hover:scale-110 group-hover:bg-[var(--color-brand-50)] group-hover:text-[var(--color-brand-600)]">
               <Wallet className="h-4 w-4" />
             </span>
           </div>
-        </article>
+        </a>
 
-        <article className="panel p-5">
+        <a href="#pending-dues-report" className="group panel block p-5 transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-[var(--color-brand-400)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-400)]">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600">Pending Dues</p>
+              <p className="text-sm font-medium text-slate-600 transition-colors group-hover:text-[var(--color-brand-600)]">Pending Dues</p>
               <p className="mt-2 text-2xl font-semibold text-slate-900">
                 {pendingDuesQuery.data ? formatCurrency(pendingDuesQuery.data.summary.total_outstanding) : "N/A"}
               </p>
@@ -256,29 +270,14 @@ export default function ReportsPage() {
                 {pendingDuesQuery.data ? `${pendingDuesQuery.data.summary.overdue_invoices} overdue invoices` : "Awaiting report data"}
               </p>
             </div>
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600 transition-transform group-hover:scale-110 group-hover:bg-[var(--color-brand-50)] group-hover:text-[var(--color-brand-600)]">
               <CreditCard className="h-4 w-4" />
             </span>
           </div>
-        </article>
-
-        <article className="panel p-5">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-600">Attendance Rate</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-900">
-                {attendanceQuery.data ? formatPercent(attendanceQuery.data.summary.marking_rate_percent) : "N/A"}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">For selected date range</p>
-            </div>
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-              <CalendarCheck2 className="h-4 w-4" />
-            </span>
-          </div>
-        </article>
+        </a>
       </div>
 
-      <section className="panel p-5">
+      <section id="occupancy-report" className="panel p-5 scroll-mt-24">
         <div className="flex items-center gap-2">
           <Building2 className="h-4 w-4 text-slate-500" />
           <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">Occupancy Report</h2>
@@ -309,7 +308,45 @@ export default function ReportsPage() {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="space-y-3 md:hidden">
+              {occupancyQuery.data.rows.map((row) => (
+                <article key={row.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">{row.room_code}</p>
+                      <p className="text-xs text-slate-500">{row.floor || "No floor label"}</p>
+                    </div>
+                    <span
+                      className={`rounded-full border px-2 py-0.5 text-xs font-medium ${row.is_active ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}
+                    >
+                      {row.is_active ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                      <p className="text-xs uppercase tracking-[0.08em] text-slate-500">Type</p>
+                      <p className="font-medium capitalize text-slate-800">{row.room_type.replace("_", " ")}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                      <p className="text-xs uppercase tracking-[0.08em] text-slate-500">Occupancy</p>
+                      <p className="font-medium text-slate-800">{formatPercent(row.occupancy_rate)}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                      <p className="text-xs uppercase tracking-[0.08em] text-slate-500">Beds</p>
+                      <p className="font-medium text-slate-800">
+                        {row.active_beds}/{row.total_beds}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                      <p className="text-xs uppercase tracking-[0.08em] text-slate-500">Available</p>
+                      <p className="font-medium text-slate-800">{row.available_beds}</p>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="hidden overflow-x-auto md:block">
               <table className="min-w-full divide-y divide-slate-200 text-sm">
                 <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.08em] text-slate-500">
                   <tr>
@@ -352,7 +389,7 @@ export default function ReportsPage() {
         ) : null}
       </section>
 
-      <section className="panel p-5">
+      <section id="collections-report" className="panel p-5 scroll-mt-24">
         <div className="flex items-center gap-2">
           <Wallet className="h-4 w-4 text-slate-500" />
           <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">Fee Collection Report</h2>
@@ -385,7 +422,41 @@ export default function ReportsPage() {
               ))}
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="space-y-3 md:hidden">
+              {feeCollectionQuery.data.rows.map((row) => (
+                <article key={row.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">{row.member_name}</p>
+                      <p className="text-xs text-slate-500">{row.member_code}</p>
+                    </div>
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700">
+                      {row.method_label}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                      <p className="text-xs uppercase tracking-[0.08em] text-slate-500">Date</p>
+                      <p className="font-medium text-slate-800">{formatDate(row.payment_date)}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                      <p className="text-xs uppercase tracking-[0.08em] text-slate-500">Amount</p>
+                      <p className="font-medium text-slate-800">{formatCurrency(row.amount)}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                      <p className="text-xs uppercase tracking-[0.08em] text-slate-500">Applied</p>
+                      <p className="font-medium text-slate-800">{formatCurrency(row.applied_amount)}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                      <p className="text-xs uppercase tracking-[0.08em] text-slate-500">Credit</p>
+                      <p className="font-medium text-slate-800">{formatCurrency(row.credit_added)}</p>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="hidden overflow-x-auto md:block">
               <table className="min-w-full divide-y divide-slate-200 text-sm">
                 <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.08em] text-slate-500">
                   <tr>
@@ -418,7 +489,7 @@ export default function ReportsPage() {
         ) : null}
       </section>
 
-      <section className="panel p-5">
+      <section id="pending-dues-report" className="panel p-5 scroll-mt-24">
         <div className="flex items-center gap-2">
           <CreditCard className="h-4 w-4 text-slate-500" />
           <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">Pending Dues Report</h2>
@@ -443,7 +514,41 @@ export default function ReportsPage() {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="space-y-3 md:hidden">
+              {pendingDuesQuery.data.rows.map((row) => (
+                <article key={row.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">{row.member_name}</p>
+                      <p className="text-xs text-slate-500">{row.member_code}</p>
+                    </div>
+                    <span className={`rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${invoiceStatusClass(row.status)}`}>
+                      {row.status.replace("_", " ")}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                      <p className="text-xs uppercase tracking-[0.08em] text-slate-500">Billing Month</p>
+                      <p className="font-medium text-slate-800">{formatDate(row.billing_month)}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                      <p className="text-xs uppercase tracking-[0.08em] text-slate-500">Due Date</p>
+                      <p className="font-medium text-slate-800">{formatDate(row.due_date)}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                      <p className="text-xs uppercase tracking-[0.08em] text-slate-500">Balance</p>
+                      <p className="font-medium text-slate-800">{formatCurrency(row.balance_amount)}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                      <p className="text-xs uppercase tracking-[0.08em] text-slate-500">Overdue</p>
+                      <p className="font-medium text-slate-800">{row.days_overdue ?? 0} days</p>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="hidden overflow-x-auto md:block">
               <table className="min-w-full divide-y divide-slate-200 text-sm">
                 <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.08em] text-slate-500">
                   <tr>
@@ -480,93 +585,7 @@ export default function ReportsPage() {
         ) : null}
       </section>
 
-      <section className="panel p-5">
-        <div className="flex items-center gap-2">
-          <SearchCheck className="h-4 w-4 text-slate-500" />
-          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">Attendance Report</h2>
-        </div>
-        <p className="mt-2 text-sm text-slate-600">Date-range attendance visibility, daily trends, and member-level consistency.</p>
-
-        <div className="mt-4">{attendanceState}</div>
-        {attendanceQuery.data ? (
-          <div className="mt-4 space-y-4">
-            <div className="grid gap-3 md:grid-cols-4">
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                <p className="text-xs uppercase tracking-[0.08em] text-slate-500">Marked</p>
-                <p className="text-lg font-semibold text-slate-900">{attendanceQuery.data.summary.marked_records}</p>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                <p className="text-xs uppercase tracking-[0.08em] text-slate-500">Present</p>
-                <p className="text-lg font-semibold text-slate-900">{attendanceQuery.data.summary.present}</p>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                <p className="text-xs uppercase tracking-[0.08em] text-slate-500">Absent</p>
-                <p className="text-lg font-semibold text-slate-900">{attendanceQuery.data.summary.absent}</p>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                <p className="text-xs uppercase tracking-[0.08em] text-slate-500">Marking Rate</p>
-                <p className="text-lg font-semibold text-slate-900">{formatPercent(attendanceQuery.data.summary.marking_rate_percent)}</p>
-              </div>
-            </div>
-
-            <div className="grid gap-3 xl:grid-cols-2">
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <h3 className="text-sm font-semibold text-slate-900">Daily Breakdown</h3>
-                <div className="mt-3 space-y-2">
-                  {attendanceQuery.data.daily_breakdown.length === 0 ? (
-                    <p className="text-sm text-slate-500">No attendance rows matched the selected range.</p>
-                  ) : (
-                    attendanceQuery.data.daily_breakdown.map((row) => (
-                      <div key={row.attendance_date} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="font-medium text-slate-900">{formatDate(row.attendance_date)}</p>
-                          <p className="text-xs text-slate-500">{row.corrected_records} corrected</p>
-                        </div>
-                        <p className="mt-1 text-xs text-slate-600">
-                          Present {row.present} | Absent {row.absent} | Leave {row.on_leave} | Excused {row.excused}
-                        </p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <h3 className="text-sm font-semibold text-slate-900">Member Breakdown</h3>
-                <div className="mt-3 overflow-x-auto">
-                  <table className="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.08em] text-slate-500">
-                      <tr>
-                        <th className="px-3 py-2">Member</th>
-                        <th className="px-3 py-2 text-right">Marked</th>
-                        <th className="px-3 py-2 text-right">Present</th>
-                        <th className="px-3 py-2 text-right">Absent</th>
-                        <th className="px-3 py-2 text-right">Rate</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200 bg-white">
-                      {attendanceQuery.data.member_breakdown.map((row) => (
-                        <tr key={row.member_id}>
-                          <td className="px-3 py-2">
-                            <p className="font-medium text-slate-900">{row.member_name}</p>
-                            <p className="text-xs text-slate-500">{row.member_code}</p>
-                          </td>
-                          <td className="px-3 py-2 text-right text-slate-700">{row.marked_days}</td>
-                          <td className="px-3 py-2 text-right text-slate-700">{row.present}</td>
-                          <td className="px-3 py-2 text-right text-slate-700">{row.absent}</td>
-                          <td className="px-3 py-2 text-right font-medium text-slate-900">{formatPercent(row.attendance_rate)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : null}
-      </section>
-
-      {occupancyQuery.isError || feeCollectionQuery.isError || pendingDuesQuery.isError || attendanceQuery.isError ? (
+      {occupancyQuery.isError || feeCollectionQuery.isError || pendingDuesQuery.isError ? (
         <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           <TriangleAlert className="h-4 w-4" />
           One or more report sections could not be loaded. The other sections remain available.

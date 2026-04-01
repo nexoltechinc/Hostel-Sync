@@ -8,6 +8,7 @@ import {
   deleteBed,
   deleteRoom,
   getBeds,
+  getRoom,
   getRooms,
   type BedsQueryParams,
   type RoomsQueryParams,
@@ -20,6 +21,14 @@ export function useRooms(params: RoomsQueryParams) {
   return useQuery({
     queryKey: ["rooms", params],
     queryFn: () => getRooms(params),
+  });
+}
+
+export function useRoom(roomId: number | null) {
+  return useQuery({
+    queryKey: ["room", roomId],
+    queryFn: () => getRoom(roomId as number),
+    enabled: typeof roomId === "number" && Number.isFinite(roomId),
   });
 }
 

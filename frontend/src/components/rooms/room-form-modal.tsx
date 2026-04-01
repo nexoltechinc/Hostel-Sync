@@ -84,9 +84,9 @@ export function RoomFormModal({ isOpen, mode, room, showHostelField, isSubmittin
   }
 
   return (
-    <div className="fixed inset-0 z-40 grid place-items-center bg-slate-950/65 p-4">
-      <div className="panel max-h-[95vh] w-full max-w-2xl overflow-y-auto p-5 md:p-6">
-        <div className="mb-4 flex items-start justify-between gap-3">
+    <div className="fixed inset-0 z-40 bg-slate-950/65 sm:grid sm:place-items-center sm:p-4">
+      <div className="panel flex h-[100dvh] w-full flex-col rounded-none border-0 sm:h-auto sm:max-h-[95vh] sm:max-w-2xl sm:rounded-[1.75rem] sm:border">
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b bg-[var(--color-surface)]/95 px-4 py-4 backdrop-blur md:px-6" style={{ borderColor: "var(--color-border)" }}>
           <div>
             <h2 className="text-lg font-semibold text-slate-900">{mode === "create" ? "Create Room" : "Edit Room"}</h2>
             <p className="text-sm text-slate-600">Maintain room metadata and bed structure configuration.</p>
@@ -102,7 +102,7 @@ export function RoomFormModal({ isOpen, mode, room, showHostelField, isSubmittin
         </div>
 
         <form
-          className="space-y-4"
+          className="flex min-h-0 flex-1 flex-col"
           onSubmit={form.handleSubmit(async (values) => {
             if (showHostelField && !values.hostel?.trim()) {
               form.setError("hostel", { type: "manual", message: "Hostel id is required for superuser accounts." });
@@ -122,113 +122,115 @@ export function RoomFormModal({ isOpen, mode, room, showHostelField, isSubmittin
             });
           })}
         >
-          <div className="grid gap-3 md:grid-cols-2">
-            {showHostelField ? (
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6">
+            <div className="grid gap-3 md:grid-cols-2">
+              {showHostelField ? (
+                <label className="space-y-1">
+                  <span className="text-sm font-medium text-slate-700">Hostel ID</span>
+                  <input
+                    type="number"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                    {...form.register("hostel")}
+                  />
+                  {form.formState.errors.hostel ? (
+                    <span className="text-xs text-rose-600">{form.formState.errors.hostel.message}</span>
+                  ) : null}
+                </label>
+              ) : null}
+
               <label className="space-y-1">
-                <span className="text-sm font-medium text-slate-700">Hostel ID</span>
-                <input
-                  type="number"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
-                  {...form.register("hostel")}
-                />
-                {form.formState.errors.hostel ? (
-                  <span className="text-xs text-rose-600">{form.formState.errors.hostel.message}</span>
-                ) : null}
-              </label>
-            ) : null}
-
-            <label className="space-y-1">
-              <span className="text-sm font-medium text-slate-700">Room Number</span>
-              <input
-                type="text"
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
-                {...form.register("room_code")}
-              />
-              {form.formState.errors.room_code ? (
-                <span className="text-xs text-rose-600">{form.formState.errors.room_code.message}</span>
-              ) : null}
-            </label>
-
-            <label className="space-y-1">
-              <span className="text-sm font-medium text-slate-700">Floor / Block</span>
-              <input
-                type="text"
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
-                {...form.register("floor")}
-              />
-            </label>
-
-            <label className="space-y-1">
-              <span className="text-sm font-medium text-slate-700">Capacity</span>
-              <input
-                type="number"
-                min={1}
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
-                {...form.register("capacity", { valueAsNumber: true })}
-              />
-              {form.formState.errors.capacity ? (
-                <span className="text-xs text-rose-600">{form.formState.errors.capacity.message}</span>
-              ) : null}
-            </label>
-
-            <label className="space-y-1">
-              <span className="text-sm font-medium text-slate-700">Room Type</span>
-              <select
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
-                {...form.register("room_type")}
-              >
-                <option value="standard">Standard</option>
-                <option value="deluxe">Deluxe</option>
-                <option value="private">Private</option>
-              </select>
-            </label>
-
-            <label className="space-y-1">
-              <span className="text-sm font-medium text-slate-700">Monthly Rent</span>
-              <input
-                type="number"
-                min={0}
-                step="0.01"
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
-                {...form.register("monthly_rent")}
-              />
-            </label>
-
-            {mode === "create" ? (
-              <label className="space-y-1 md:col-span-2">
-                <span className="text-sm font-medium text-slate-700">Bed Labels (comma separated, optional)</span>
+                <span className="text-sm font-medium text-slate-700">Room Number</span>
                 <input
                   type="text"
-                  placeholder="A1, A2, A3"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
-                  {...form.register("bed_labels")}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                  {...form.register("room_code")}
                 />
-                <p className="text-xs text-slate-500">Leave blank to auto-generate beds as B1..Bn based on capacity.</p>
+                {form.formState.errors.room_code ? (
+                  <span className="text-xs text-rose-600">{form.formState.errors.room_code.message}</span>
+                ) : null}
               </label>
-            ) : (
-              <p className="text-xs text-slate-500 md:col-span-2">
-                Bed labels are managed separately using the room&apos;s Bed Management section.
-              </p>
-            )}
 
-            <label className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 md:col-span-2">
-              <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("is_active")} />
-              Room is active
-            </label>
+              <label className="space-y-1">
+                <span className="text-sm font-medium text-slate-700">Floor / Block</span>
+                <input
+                  type="text"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                  {...form.register("floor")}
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-sm font-medium text-slate-700">Capacity</span>
+                <input
+                  type="number"
+                  min={1}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                  {...form.register("capacity", { valueAsNumber: true })}
+                />
+                {form.formState.errors.capacity ? (
+                  <span className="text-xs text-rose-600">{form.formState.errors.capacity.message}</span>
+                ) : null}
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-sm font-medium text-slate-700">Room Type</span>
+                <select
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                  {...form.register("room_type")}
+                >
+                  <option value="standard">Standard</option>
+                  <option value="deluxe">Deluxe</option>
+                  <option value="private">Private</option>
+                </select>
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-sm font-medium text-slate-700">Monthly Rent</span>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                  {...form.register("monthly_rent")}
+                />
+              </label>
+
+              {mode === "create" ? (
+                <label className="space-y-1 md:col-span-2">
+                  <span className="text-sm font-medium text-slate-700">Bed Labels (comma separated, optional)</span>
+                  <input
+                    type="text"
+                    placeholder="A1, A2, A3"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                    {...form.register("bed_labels")}
+                  />
+                  <p className="text-xs text-slate-500">Leave blank to auto-generate beds as B1..Bn based on capacity.</p>
+                </label>
+              ) : (
+                <p className="text-xs text-slate-500 md:col-span-2">
+                  Bed labels are managed separately using the room&apos;s Bed Management section.
+                </p>
+              )}
+
+              <label className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-700 md:col-span-2">
+                <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("is_active")} />
+                Room is active
+              </label>
+            </div>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-2">
+          <div className="sticky bottom-0 flex flex-col gap-2 border-t bg-[var(--color-surface)]/95 px-4 py-4 backdrop-blur sm:flex-row sm:items-center sm:justify-end md:px-6" style={{ borderColor: "var(--color-border)" }}>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 sm:w-auto"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-xl bg-[var(--color-brand-600)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--color-brand-700)] disabled:cursor-not-allowed disabled:opacity-70"
+              className="w-full rounded-xl bg-[var(--color-brand-600)] px-4 py-3 text-sm font-medium text-white transition hover:bg-[var(--color-brand-700)] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
             >
               {isSubmitting ? "Saving..." : mode === "create" ? "Create Room" : "Update Room"}
             </button>

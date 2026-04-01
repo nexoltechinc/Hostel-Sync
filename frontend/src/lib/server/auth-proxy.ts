@@ -6,6 +6,7 @@ import {
   ACCESS_COOKIE_MAX_AGE_SECONDS,
   REFRESH_COOKIE,
   REFRESH_COOKIE_MAX_AGE_SECONDS,
+  shouldUseSecureAuthCookies,
 } from "@/lib/auth/constants";
 import { backendRequest } from "@/lib/server/backend";
 
@@ -94,6 +95,7 @@ export async function authProxyRequest<T>(options: AuthProxyRequestOptions): Pro
 }
 
 function applyCookieUpdates<T>(response: NextResponse, result: AuthProxyResult<T>) {
+  const secureCookies = shouldUseSecureAuthCookies();
   if (result.clearCookies) {
     response.cookies.set(ACCESS_COOKIE, "", { path: "/", maxAge: 0 });
     response.cookies.set(REFRESH_COOKIE, "", { path: "/", maxAge: 0 });
@@ -107,14 +109,14 @@ function applyCookieUpdates<T>(response: NextResponse, result: AuthProxyResult<T
   response.cookies.set(ACCESS_COOKIE, result.setCookies.access, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: secureCookies,
     path: "/",
     maxAge: ACCESS_COOKIE_MAX_AGE_SECONDS,
   });
   response.cookies.set(REFRESH_COOKIE, result.setCookies.refresh, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: secureCookies,
     path: "/",
     maxAge: REFRESH_COOKIE_MAX_AGE_SECONDS,
   });
