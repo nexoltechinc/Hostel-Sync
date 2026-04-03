@@ -1,16 +1,27 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Bell, Building2, Clock3, Globe2, LoaderCircle, Mail, MapPinned, Palette, Phone, Save, ShieldCheck, Wallet } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import clsx from "clsx";
+import {
+  AlertCircle,
+  Bell,
+  Building2,
+  CheckCircle2,
+  Clock3,
+  LoaderCircle,
+  Palette,
+  RotateCcw,
+  Save,
+  ShieldCheck,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Controller, useForm, useWatch, type Control, type FieldPath } from "react-hook-form";
 import { z } from "zod";
 
-import { IconBadge } from "@/components/ui/icon-badge";
-import { SectionHeading } from "@/components/ui/section-heading";
 import { useSession } from "@/hooks/use-session";
 import { useSettings, useUpdateSettings } from "@/hooks/use-settings";
-import { moduleIcons } from "@/lib/app-icons";
 import type { SettingsRecord, SettingsUpdatePayload } from "@/lib/types";
 
 const hexColorPattern = /^#[0-9A-Fa-f]{6}$/;
@@ -28,7 +39,7 @@ const settingsFormSchema = z.object({
   branding: z.object({
     brand_name: z.string(),
     website_url: z.union([z.string().url("Enter a valid URL."), z.literal("")]),
-    primary_color: z.string().regex(hexColorPattern, "Use a hex color like #1667D6."),
+    primary_color: z.string().regex(hexColorPattern, "Use a hex color like #2D6CFF."),
     accent_color: z.string().regex(hexColorPattern, "Use a hex color like #F59E0B."),
   }),
   financial: z.object({
@@ -62,6 +73,7 @@ const settingsFormSchema = z.object({
 });
 
 type SettingsFormValues = z.infer<typeof settingsFormSchema>;
+type SaveTone = "success" | "warning" | "danger" | "default";
 
 function defaultValues(record?: SettingsRecord): SettingsFormValues {
   return {
@@ -77,7 +89,7 @@ function defaultValues(record?: SettingsRecord): SettingsFormValues {
     branding: {
       brand_name: record?.branding.brand_name ?? "",
       website_url: record?.branding.website_url ?? "",
-      primary_color: record?.branding.primary_color ?? "#1667D6",
+      primary_color: record?.branding.primary_color ?? "#2D6CFF",
       accent_color: record?.branding.accent_color ?? "#F59E0B",
     },
     financial: {
@@ -113,27 +125,58 @@ function defaultValues(record?: SettingsRecord): SettingsFormValues {
 
 function formatDateTime(value: string | null) {
   if (!value) {
-    return "Never updated";
+    return "Never";
   }
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 }
 
-function formatCurrency(value: number, currencyCode: string) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currencyCode || "USD",
-    maximumFractionDigits: 0,
-  }).format(value ?? 0);
-}
-
-function SectionCard({ icon, title, description, children }: { icon: ReactNode; title: string; description: string; children: ReactNode }) {
+function ShellState({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return (
-    <section className="panel p-4 sm:p-5">
-      <div className="mb-4 flex items-start gap-3">
-        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">{icon}</span>
-        <div>
-          <h2 className="text-base font-semibold text-slate-900">{title}</h2>
-          <p className="text-sm text-slate-600">{description}</p>
+    <section className="settings-shell p-6 sm:p-7 xl:p-8">
+      <div className="mx-auto flex max-w-3xl flex-col gap-5">
+        <header className="space-y-2">
+          <h1 className="text-3xl font-semibold tracking-[-0.03em] text-[var(--settings-text-primary)]">{title}</h1>
+          <p className="max-w-2xl text-sm leading-6 text-[var(--settings-text-secondary)]">{description}</p>
+        </header>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function SettingsCard({
+  icon: Icon,
+  title,
+  description,
+  badge,
+  secondary = false,
+  children,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  badge?: string;
+  secondary?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <section className={clsx("settings-card h-full", secondary && "settings-card-secondary")}>
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <span className="settings-card-icon">
+            <Icon className="h-5 w-5" />
+          </span>
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-lg font-semibold tracking-[-0.02em] text-[var(--settings-text-primary)]">{title}</h2>
+              {badge ? <span className="settings-status-badge">{badge}</span> : null}
+            </div>
+            <p className="max-w-xl text-sm leading-6 text-[var(--settings-text-secondary)]">{description}</p>
+          </div>
         </div>
       </div>
       {children}
@@ -141,28 +184,98 @@ function SectionCard({ icon, title, description, children }: { icon: ReactNode; 
   );
 }
 
-function FieldGroup({ label, error, icon, children }: { label: string; error?: string; icon?: ReactNode; children: ReactNode }) {
+function FieldShell({
+  label,
+  helper,
+  error,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  helper?: string;
+  error?: string;
+  htmlFor?: string;
+  children: ReactNode;
+}) {
   return (
-    <label className="space-y-1">
-      <span className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
-        {icon ? <span className="text-slate-400">{icon}</span> : null}
-        {label}
-      </span>
+    <label htmlFor={htmlFor} className="settings-field">
+      <span className="settings-field-label">{label}</span>
+      {helper ? <span className="settings-field-helper">{helper}</span> : null}
       {children}
-      {error ? <span className="text-xs text-rose-600">{error}</span> : null}
+      {error ? <span className="settings-field-error">{error}</span> : null}
     </label>
   );
 }
 
-function ToggleRow({ label, icon, children }: { label: string; icon?: ReactNode; children: ReactNode }) {
+function ToggleField({
+  control,
+  name,
+  label,
+  description,
+  icon: Icon,
+  disabled = false,
+}: {
+  control: Control<SettingsFormValues>;
+  name: FieldPath<SettingsFormValues>;
+  label: string;
+  description: string;
+  icon: LucideIcon;
+  disabled?: boolean;
+}) {
   return (
-    <label className="flex flex-col gap-3 rounded-xl border border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-700 sm:flex-row sm:items-center sm:justify-between">
-      <span className="inline-flex items-center gap-2">
-        {icon ? <span className="text-slate-400">{icon}</span> : null}
-        {label}
-      </span>
-      {children}
-    </label>
+    <Controller
+      control={control}
+      name={name}
+      render={({ field }) => {
+        const checked = Boolean(field.value);
+
+        return (
+          <label className="settings-toggle-row" data-checked={checked ? "true" : "false"} data-disabled={disabled ? "true" : "false"}>
+            <div className="flex items-start gap-3">
+              <span className="settings-card-icon mt-0.5 h-9 w-9 rounded-xl">
+                <Icon className="h-4 w-4" />
+              </span>
+              <div className="space-y-1">
+                <span className="block text-sm font-medium text-[var(--settings-text-primary)]">{label}</span>
+                <span className="block text-sm leading-6 text-[var(--settings-text-secondary)]">{description}</span>
+              </div>
+            </div>
+            <span className="relative inline-flex items-center">
+              <input
+                ref={field.ref}
+                type="checkbox"
+                className="sr-only"
+                checked={checked}
+                onBlur={field.onBlur}
+                onChange={(event) => field.onChange(event.target.checked)}
+                disabled={disabled}
+              />
+              <span className="settings-toggle">
+                <span className="settings-toggle-thumb" />
+              </span>
+            </span>
+          </label>
+        );
+      }}
+    />
+  );
+}
+
+function SaveStateBadge({ tone, label }: { tone: SaveTone; label: string }) {
+  const icon =
+    tone === "success" ? (
+      <CheckCircle2 className="h-4 w-4" />
+    ) : tone === "warning" || tone === "danger" ? (
+      <AlertCircle className="h-4 w-4" />
+    ) : (
+      <Clock3 className="h-4 w-4" />
+    );
+
+  return (
+    <span className="settings-status-badge" data-tone={tone === "default" ? undefined : tone}>
+      {icon}
+      {label}
+    </span>
   );
 }
 
@@ -172,6 +285,7 @@ export function SettingsScreen() {
   const updateSettingsMutation = useUpdateSettings();
   const [feedback, setFeedback] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [savedRecord, setSavedRecord] = useState<SettingsRecord | null>(null);
 
   const permissions = sessionData?.user.permissions ?? [];
   const canManageSettings = permissions.includes("*") || permissions.includes("manage_hostel_settings");
@@ -181,17 +295,78 @@ export function SettingsScreen() {
     defaultValues: defaultValues(),
   });
 
-  useEffect(() => {
-    if (settingsQuery.data?.data) {
-      form.reset(defaultValues(settingsQuery.data.data));
-    }
-  }, [form, settingsQuery.data]);
-
+  const isDirty = form.formState.isDirty;
+  const isSaving = updateSettingsMutation.isPending;
   const record = settingsQuery.data?.data;
-  const financial = useWatch({
-    control: form.control,
-    name: "financial",
-  });
+  const hostelName = useWatch({ control: form.control, name: "hostel.name" });
+  const hostelCode = useWatch({ control: form.control, name: "hostel.code" });
+  const hostelIsActive = useWatch({ control: form.control, name: "hostel.is_active" });
+  const primaryColor = useWatch({ control: form.control, name: "branding.primary_color" });
+  const accentColor = useWatch({ control: form.control, name: "branding.accent_color" });
+
+  const effectiveRecord = useMemo(() => {
+    if (!record) {
+      return savedRecord;
+    }
+
+    if (!savedRecord) {
+      return record;
+    }
+
+    return new Date(record.updated_at).getTime() >= new Date(savedRecord.updated_at).getTime() ? record : savedRecord;
+  }, [record, savedRecord]);
+
+  useEffect(() => {
+    if (!effectiveRecord || isDirty) {
+      return;
+    }
+
+    form.reset(defaultValues(effectiveRecord));
+  }, [effectiveRecord, form, isDirty]);
+
+  const resetTarget = effectiveRecord;
+  const currentHostelName = hostelName?.trim() || effectiveRecord?.hostel.name || "Hostel";
+  const currentHostelCode = hostelCode?.trim().toUpperCase() || effectiveRecord?.hostel.code || "HOSTEL";
+
+  const saveState = useMemo(() => {
+    if (isSaving) {
+      return {
+        tone: "warning" as SaveTone,
+        label: "Saving settings",
+        message: "Applying updated configuration across hostel operations.",
+      };
+    }
+
+    if (errorMessage) {
+      return {
+        tone: "danger" as SaveTone,
+        label: "Save failed",
+        message: errorMessage,
+      };
+    }
+
+    if (isDirty) {
+      return {
+        tone: "warning" as SaveTone,
+        label: "Unsaved changes",
+        message: "Review changes and save them before leaving this page.",
+      };
+    }
+
+    if (feedback) {
+      return {
+        tone: "success" as SaveTone,
+        label: "Changes saved",
+        message: `Last saved ${formatDateTime(effectiveRecord?.updated_at ?? null)}.`,
+      };
+    }
+
+    return {
+      tone: "default" as SaveTone,
+      label: "No pending changes",
+      message: `Last saved ${formatDateTime(effectiveRecord?.updated_at ?? null)}.`,
+    };
+  }, [effectiveRecord?.updated_at, errorMessage, feedback, isDirty, isSaving]);
 
   async function onSubmit(values: SettingsFormValues) {
     setFeedback(null);
@@ -201,13 +376,6 @@ export function SettingsScreen() {
       hostel: {
         ...values.hostel,
         code: values.hostel.code.trim().toUpperCase(),
-      },
-      branding: {
-        ...values.branding,
-        brand_name: values.branding.brand_name.trim(),
-        website_url: values.branding.website_url.trim(),
-        primary_color: values.branding.primary_color.toUpperCase(),
-        accent_color: values.branding.accent_color.toUpperCase(),
       },
       financial: {
         ...values.financial,
@@ -222,249 +390,532 @@ export function SettingsScreen() {
             : values.operations.attendance_cutoff_time,
       },
       access: values.access,
+      branding: {
+        ...values.branding,
+        brand_name: values.branding.brand_name.trim(),
+        website_url: values.branding.website_url.trim(),
+        primary_color: values.branding.primary_color.toUpperCase(),
+        accent_color: values.branding.accent_color.toUpperCase(),
+      },
     };
 
     try {
-      await updateSettingsMutation.mutateAsync(payload);
-      setFeedback("Settings updated successfully.");
+      const snapshot = await updateSettingsMutation.mutateAsync(payload);
+      const nextRecord = snapshot.data;
+
+      setSavedRecord(nextRecord);
+      form.reset(defaultValues(nextRecord));
+      setFeedback("Settings saved successfully.");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Failed to update settings.");
     }
   }
 
+  function handleReset() {
+    if (!resetTarget) {
+      return;
+    }
+
+    form.reset(defaultValues(resetTarget));
+    setFeedback(null);
+    setErrorMessage(null);
+  }
+
   if (sessionLoading || settingsQuery.isLoading) {
     return (
-      <section className="grid min-h-[320px] place-items-center">
-        <div className="inline-flex items-center gap-2 text-sm text-slate-500">
-          <LoaderCircle className="h-4 w-4 animate-spin" />
-          Loading settings...
+      <ShellState title="Settings" description="Configure hostel profile, billing defaults, notification rules, operations, and access permissions.">
+        <div className="settings-card flex min-h-[220px] items-center justify-center">
+          <div className="inline-flex items-center gap-3 text-sm text-[var(--settings-text-secondary)]">
+            <LoaderCircle className="h-4 w-4 animate-spin" />
+            Loading hostel settings...
+          </div>
         </div>
-      </section>
+      </ShellState>
     );
   }
 
   if (!canManageSettings) {
     return (
-      <section className="space-y-4">
-        <SectionHeading icon={moduleIcons.settings} eyebrow="Module 10" title="Settings" description="Centralized configuration, defaults, and governance controls." />
-        <div className="panel p-6 text-sm text-slate-600">
-          Your account does not currently have permission to manage hostel settings.
+      <ShellState title="Settings" description="Configure hostel profile, billing defaults, notification rules, operations, and access permissions.">
+        <div className="settings-card flex min-h-[220px] items-center justify-center">
+          <div className="max-w-lg space-y-3 text-center">
+            <h2 className="text-lg font-semibold text-[var(--settings-text-primary)]">Access restricted</h2>
+            <p className="text-sm leading-6 text-[var(--settings-text-secondary)]">
+              Your account does not currently have permission to manage hostel settings.
+            </p>
+          </div>
         </div>
-      </section>
+      </ShellState>
     );
   }
 
   if (settingsQuery.isError || !record) {
     return (
-      <section className="space-y-4">
-        <SectionHeading icon={moduleIcons.settings} eyebrow="Module 10" title="Settings" description="Centralized configuration, defaults, and governance controls." />
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {settingsQuery.error instanceof Error ? settingsQuery.error.message : "Failed to load settings."}
+      <ShellState title="Settings" description="Configure hostel profile, billing defaults, notification rules, operations, and access permissions.">
+        <div className="settings-card border-[color:color-mix(in_srgb,var(--settings-danger)_40%,transparent)]">
+          <div className="flex items-start gap-3">
+            <span className="settings-card-icon text-[var(--settings-danger)]">
+              <AlertCircle className="h-5 w-5" />
+            </span>
+            <div className="space-y-2">
+              <h2 className="text-lg font-semibold text-[var(--settings-text-primary)]">Unable to load settings</h2>
+              <p className="text-sm leading-6 text-[var(--settings-text-secondary)]">
+                {settingsQuery.error instanceof Error ? settingsQuery.error.message : "Failed to load settings."}
+              </p>
+            </div>
+          </div>
         </div>
-      </section>
+      </ShellState>
     );
   }
 
   return (
-    <section className="space-y-6">
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <SectionHeading
-          icon={moduleIcons.settings}
-          eyebrow="Module 10"
-          title="Settings"
-          description="Configure hostel identity, financial defaults, operational rules, and role-sensitive governance."
-        />
-        <div className="text-left text-sm text-slate-600 lg:text-right">
-          <p className="font-medium text-slate-900">{record.hostel.name}</p>
-          <p>
-            Last updated {formatDateTime(record.updated_at)}
-            {record.updated_by ? ` by ${record.updated_by}` : ""}
-          </p>
-        </div>
-      </header>
+    <section className="settings-shell p-6 sm:p-7 xl:p-8">
+      <div className="space-y-6">
+        <header className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <h1 className="text-3xl font-semibold tracking-[-0.03em] text-[var(--settings-text-primary)] sm:text-[2.1rem]">Settings</h1>
+              <p className="max-w-3xl text-sm leading-7 text-[var(--settings-text-secondary)] sm:text-[15px]">
+                Configure hostel profile, billing defaults, notification rules, operations, and access permissions.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <SaveStateBadge tone={hostelIsActive ? "success" : "warning"} label={hostelIsActive ? "Hostel active" : "Hostel inactive"} />
+              <SaveStateBadge tone={saveState.tone} label={saveState.label} />
+            </div>
+          </div>
 
-      {feedback ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{feedback}</div> : null}
-      {errorMessage ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{errorMessage}</div> : null}
+          <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[420px]">
+            <article className="settings-meta-pill">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--settings-text-muted)]">Hostel name</p>
+              <p className="mt-2 text-base font-semibold text-[var(--settings-text-primary)]">{currentHostelName}</p>
+              <p className="mt-1 text-sm text-[var(--settings-text-secondary)]">{currentHostelCode}</p>
+            </article>
+            <article className="settings-meta-pill">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--settings-text-muted)]">Last saved</p>
+              <p className="mt-2 text-base font-semibold text-[var(--settings-text-primary)]">{formatDateTime(effectiveRecord?.updated_at ?? null)}</p>
+              <p className="mt-1 text-sm text-[var(--settings-text-secondary)]">
+                {record.updated_by ? `Updated by ${record.updated_by}` : "Most recent saved snapshot"}
+              </p>
+            </article>
+          </div>
+        </header>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <article className="panel p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-          <p className="text-sm font-medium text-slate-600">Hostel Code</p>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">{record.hostel.code}</p>
-          <p className="mt-1 text-xs text-slate-500">{record.hostel.is_active ? "Operational" : "Inactive"}</p>
+        <form className="space-y-5" onSubmit={form.handleSubmit(onSubmit)}>
+          <fieldset disabled={isSaving} className="grid gap-5 xl:grid-cols-2">
+            <SettingsCard
+              icon={Building2}
+              title="Hostel Profile"
+              description="Basic hostel identity and contact information used across member records, invoices, and staff workflows."
+            >
+              <div className="grid gap-4 md:grid-cols-2">
+                <FieldShell label="Hostel Name" error={form.formState.errors.hostel?.name?.message} htmlFor="settings-hostel-name">
+                  <input
+                    id="settings-hostel-name"
+                    autoComplete="organization"
+                    className={clsx("settings-control", form.formState.errors.hostel?.name && "settings-control-error")}
+                    {...form.register("hostel.name")}
+                  />
+                </FieldShell>
+
+                <FieldShell label="Hostel Code" helper="Used in system references and printed documents." error={form.formState.errors.hostel?.code?.message} htmlFor="settings-hostel-code">
+                  <input
+                    id="settings-hostel-code"
+                    autoComplete="off"
+                    className={clsx("settings-control uppercase", form.formState.errors.hostel?.code && "settings-control-error")}
+                    {...form.register("hostel.code")}
+                  />
+                </FieldShell>
+
+                <FieldShell label="Email" helper="Primary contact used for billing and system communication." error={form.formState.errors.hostel?.email?.message} htmlFor="settings-hostel-email">
+                  <input
+                    id="settings-hostel-email"
+                    type="email"
+                    autoComplete="email"
+                    className={clsx("settings-control", form.formState.errors.hostel?.email && "settings-control-error")}
+                    {...form.register("hostel.email")}
+                  />
+                </FieldShell>
+
+                <FieldShell label="Phone" helper="Main operational contact number for residents and staff." htmlFor="settings-hostel-phone">
+                  <input id="settings-hostel-phone" autoComplete="tel" className="settings-control" {...form.register("hostel.phone")} />
+                </FieldShell>
+
+                <FieldShell label="Timezone" helper="Controls attendance timestamps, due dates, and system reminders." error={form.formState.errors.hostel?.timezone?.message} htmlFor="settings-hostel-timezone">
+                  <input
+                    id="settings-hostel-timezone"
+                    autoComplete="off"
+                    className={clsx("settings-control", form.formState.errors.hostel?.timezone && "settings-control-error")}
+                    {...form.register("hostel.timezone")}
+                  />
+                </FieldShell>
+
+                <FieldShell label="Address" helper="Stored as the primary hostel location shown in system records." htmlFor="settings-hostel-address">
+                  <textarea id="settings-hostel-address" className="settings-control settings-textarea" {...form.register("hostel.address")} />
+                </FieldShell>
+
+                <div className="md:col-span-2">
+                  <ToggleField
+                    control={form.control}
+                    name="hostel.is_active"
+                    disabled={isSaving}
+                    icon={ShieldCheck}
+                    label="Hostel is active"
+                    description="Keep this enabled while the hostel is operating and available across the platform."
+                  />
+                </div>
+              </div>
+            </SettingsCard>
+
+            <SettingsCard
+              icon={Wallet}
+              title="Financial Defaults"
+              description="Default billing and payment behavior used when invoices, deposits, and admissions are created."
+            >
+              <div className="grid gap-4 md:grid-cols-2">
+                <FieldShell label="Currency Code" helper="Used for invoices, deposits, fees, and balances." error={form.formState.errors.financial?.currency_code?.message} htmlFor="settings-financial-currency">
+                  <input
+                    id="settings-financial-currency"
+                    maxLength={3}
+                    className={clsx("settings-control uppercase", form.formState.errors.financial?.currency_code && "settings-control-error")}
+                    {...form.register("financial.currency_code")}
+                  />
+                </FieldShell>
+
+                <FieldShell
+                  label="Invoice Due Day"
+                  helper="Choose a billing day between 1 and 28 to avoid month-end date gaps."
+                  error={form.formState.errors.financial?.invoice_due_day?.message}
+                  htmlFor="settings-financial-due-day"
+                >
+                  <input
+                    id="settings-financial-due-day"
+                    type="number"
+                    min={1}
+                    max={28}
+                    className={clsx("settings-control", form.formState.errors.financial?.invoice_due_day && "settings-control-error")}
+                    {...form.register("financial.invoice_due_day", { valueAsNumber: true })}
+                  />
+                </FieldShell>
+
+                <FieldShell
+                  label="Late Fee Amount"
+                  helper="Applied when an invoice remains unpaid after its due date."
+                  error={form.formState.errors.financial?.late_fee_amount?.message}
+                  htmlFor="settings-financial-late-fee"
+                >
+                  <input
+                    id="settings-financial-late-fee"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    className={clsx("settings-control", form.formState.errors.financial?.late_fee_amount && "settings-control-error")}
+                    {...form.register("financial.late_fee_amount", { valueAsNumber: true })}
+                  />
+                </FieldShell>
+
+                <FieldShell
+                  label="Default Security Deposit"
+                  helper="Prefilled when a new member record is created."
+                  error={form.formState.errors.financial?.default_security_deposit?.message}
+                  htmlFor="settings-financial-deposit"
+                >
+                  <input
+                    id="settings-financial-deposit"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    className={clsx("settings-control", form.formState.errors.financial?.default_security_deposit && "settings-control-error")}
+                    {...form.register("financial.default_security_deposit", { valueAsNumber: true })}
+                  />
+                </FieldShell>
+
+                <FieldShell
+                  label="Default Admission Fee"
+                  helper="Applied as the standard onboarding fee for new admissions."
+                  error={form.formState.errors.financial?.default_admission_fee?.message}
+                  htmlFor="settings-financial-admission"
+                >
+                  <input
+                    id="settings-financial-admission"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    className={clsx("settings-control", form.formState.errors.financial?.default_admission_fee && "settings-control-error")}
+                    {...form.register("financial.default_admission_fee", { valueAsNumber: true })}
+                  />
+                </FieldShell>
+
+                <div className="md:col-span-2 space-y-3">
+                  <ToggleField
+                    control={form.control}
+                    name="financial.allow_partial_payments"
+                    disabled={isSaving}
+                    icon={Wallet}
+                    label="Allow partial payments"
+                    description="Let staff record part-payments against open invoices instead of requiring full settlement."
+                  />
+                  <ToggleField
+                    control={form.control}
+                    name="financial.auto_apply_member_credit"
+                    disabled={isSaving}
+                    icon={Wallet}
+                    label="Auto-apply member credit"
+                    description="Automatically use stored member credit before leaving a remaining balance due."
+                  />
+                </div>
+              </div>
+            </SettingsCard>
+
+            <SettingsCard
+              icon={Bell}
+              title="Notification Policies"
+              description="Communication and reminder settings used for announcements, dues follow-up, and attendance alerts."
+            >
+              <div className="space-y-3">
+                <ToggleField
+                  control={form.control}
+                  name="notifications.enable_announcements"
+                  disabled={isSaving}
+                  icon={Bell}
+                  label="Enable announcements"
+                  description="Allow staff to publish hostel-wide notices for residents and operational teams."
+                />
+                <ToggleField
+                  control={form.control}
+                  name="notifications.enable_fee_reminders"
+                  disabled={isSaving}
+                  icon={Bell}
+                  label="Enable fee reminders"
+                  description="Send payment reminder workflows before and after invoice due dates."
+                />
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FieldShell
+                    label="Reminder Days Before Due Date"
+                    helper="How many days in advance to remind residents about upcoming dues."
+                    error={form.formState.errors.notifications?.fee_reminder_days_before?.message}
+                    htmlFor="settings-notifications-before"
+                  >
+                    <input
+                      id="settings-notifications-before"
+                      type="number"
+                      min={0}
+                      max={30}
+                      className={clsx("settings-control", form.formState.errors.notifications?.fee_reminder_days_before && "settings-control-error")}
+                      {...form.register("notifications.fee_reminder_days_before", { valueAsNumber: true })}
+                    />
+                  </FieldShell>
+
+                  <FieldShell
+                    label="Reminder Days After Due Date"
+                    helper="How many days after the due date to continue overdue follow-up."
+                    error={form.formState.errors.notifications?.fee_reminder_days_after?.message}
+                    htmlFor="settings-notifications-after"
+                  >
+                    <input
+                      id="settings-notifications-after"
+                      type="number"
+                      min={0}
+                      max={30}
+                      className={clsx("settings-control", form.formState.errors.notifications?.fee_reminder_days_after && "settings-control-error")}
+                      {...form.register("notifications.fee_reminder_days_after", { valueAsNumber: true })}
+                    />
+                  </FieldShell>
+                </div>
+                <ToggleField
+                  control={form.control}
+                  name="notifications.enable_attendance_alerts"
+                  disabled={isSaving}
+                  icon={Bell}
+                  label="Enable attendance alerts"
+                  description="Notify staff when daily attendance is missed, late, or needs escalation."
+                />
+              </div>
+            </SettingsCard>
+            <SettingsCard
+              icon={Clock3}
+              title="Operations"
+              description="Attendance and checkout rules that guide daily resident operations and warden workflows."
+            >
+              <div className="grid gap-4 md:grid-cols-2">
+                <FieldShell
+                  label="Attendance Cutoff Time"
+                  helper="Attendance changes after this time should be treated as exceptions."
+                  error={form.formState.errors.operations?.attendance_cutoff_time?.message}
+                  htmlFor="settings-operations-attendance-cutoff"
+                >
+                  <input
+                    id="settings-operations-attendance-cutoff"
+                    type="time"
+                    className={clsx("settings-control", form.formState.errors.operations?.attendance_cutoff_time && "settings-control-error")}
+                    {...form.register("operations.attendance_cutoff_time")}
+                  />
+                </FieldShell>
+
+                <FieldShell
+                  label="Checkout Notice Days"
+                  helper="Minimum notice expected before a scheduled checkout."
+                  error={form.formState.errors.operations?.checkout_notice_days?.message}
+                  htmlFor="settings-operations-checkout-days"
+                >
+                  <input
+                    id="settings-operations-checkout-days"
+                    type="number"
+                    min={0}
+                    max={60}
+                    className={clsx("settings-control", form.formState.errors.operations?.checkout_notice_days && "settings-control-error")}
+                    {...form.register("operations.checkout_notice_days", { valueAsNumber: true })}
+                  />
+                </FieldShell>
+
+                <div className="md:col-span-2 space-y-3">
+                  <ToggleField
+                    control={form.control}
+                    name="operations.allow_attendance_corrections"
+                    disabled={isSaving}
+                    icon={Clock3}
+                    label="Allow attendance corrections"
+                    description="Permit authorized staff to edit marked attendance after the initial record is submitted."
+                  />
+                  <ToggleField
+                    control={form.control}
+                    name="operations.require_checkout_clearance"
+                    disabled={isSaving}
+                    icon={ShieldCheck}
+                    label="Require checkout clearance"
+                    description="Require dues, key return, and room clearance checks before a checkout can be completed."
+                  />
+                </div>
+              </div>
+            </SettingsCard>
+
+            <SettingsCard
+              icon={ShieldCheck}
+              title="Access Policies"
+              description="Role-based access permissions for staff management, settings control, and report visibility."
+            >
+              <div className="space-y-3">
+                <ToggleField
+                  control={form.control}
+                  name="access.allow_admin_manage_users"
+                  disabled={isSaving}
+                  icon={ShieldCheck}
+                  label="Allow admins to manage staff users"
+                  description="Lets admins create, edit, and deactivate staff accounts without owner intervention."
+                />
+                <ToggleField
+                  control={form.control}
+                  name="access.allow_admin_manage_hostel_settings"
+                  disabled={isSaving}
+                  icon={ShieldCheck}
+                  label="Allow admins to manage hostel settings"
+                  description="Lets admins update financial defaults, operations, notifications, and hostel configuration."
+                />
+                <ToggleField
+                  control={form.control}
+                  name="access.allow_warden_view_reports"
+                  disabled={isSaving}
+                  icon={ShieldCheck}
+                  label="Allow wardens to view reports"
+                  description="Gives wardens access to reporting views needed for day-to-day hostel supervision."
+                />
+                <ToggleField
+                  control={form.control}
+                  name="access.allow_staff_view_reports"
+                  disabled={isSaving}
+                  icon={ShieldCheck}
+                  label="Allow staff to view reports"
+                  description="Allows general staff to open report views without broader management permissions."
+                />
+              </div>
+            </SettingsCard>
+
+            <SettingsCard
+              icon={Palette}
+              title="Branding"
+              description="Optional identity details used for hostel-facing documents, announcements, and public links."
+              badge="Optional"
+              secondary
+            >
+              <div className="grid gap-4 md:grid-cols-2">
+                <FieldShell label="Brand Name" helper="Shown on hostel-facing communication and printed documents." htmlFor="settings-branding-name">
+                  <input id="settings-branding-name" className="settings-control" {...form.register("branding.brand_name")} />
+                </FieldShell>
+
+                <FieldShell
+                  label="Website URL"
+                  helper="Optional public website or booking page for the hostel."
+                  error={form.formState.errors.branding?.website_url?.message}
+                  htmlFor="settings-branding-website"
+                >
+                  <input
+                    id="settings-branding-website"
+                    type="url"
+                    className={clsx("settings-control", form.formState.errors.branding?.website_url && "settings-control-error")}
+                    {...form.register("branding.website_url")}
+                  />
+                </FieldShell>
+
+                <FieldShell
+                  label="Primary Color"
+                  helper="Used for primary buttons and brand accents."
+                  error={form.formState.errors.branding?.primary_color?.message}
+                  htmlFor="settings-branding-primary"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="h-11 w-11 rounded-[14px] border border-[var(--settings-border)]" style={{ backgroundColor: primaryColor || "#2D6CFF" }} />
+                    <input
+                      id="settings-branding-primary"
+                      maxLength={7}
+                      className={clsx("settings-control font-mono uppercase", form.formState.errors.branding?.primary_color && "settings-control-error")}
+                      {...form.register("branding.primary_color")}
+                    />
+                  </div>
+                </FieldShell>
+
+                <FieldShell
+                  label="Accent Color"
+                  helper="Used for secondary highlights, tags, and visual emphasis."
+                  error={form.formState.errors.branding?.accent_color?.message}
+                  htmlFor="settings-branding-accent"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="h-11 w-11 rounded-[14px] border border-[var(--settings-border)]" style={{ backgroundColor: accentColor || "#F59E0B" }} />
+                    <input
+                      id="settings-branding-accent"
+                      maxLength={7}
+                      className={clsx("settings-control font-mono uppercase", form.formState.errors.branding?.accent_color && "settings-control-error")}
+                      {...form.register("branding.accent_color")}
+                    />
+                  </div>
+                </FieldShell>
+              </div>
+            </SettingsCard>
+          </fieldset>
+
+          <div className="settings-savebar" aria-live="polite">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <SaveStateBadge tone={saveState.tone} label={saveState.label} />
+                <span className="text-sm text-[var(--settings-text-secondary)]">Last saved {formatDateTime(effectiveRecord?.updated_at ?? null)}</span>
+              </div>
+              <p className="text-sm leading-6 text-[var(--settings-text-secondary)]">{saveState.message}</p>
             </div>
-            <IconBadge icon={Building2} />
-          </div>
-        </article>
-        <article className="panel p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-          <p className="text-sm font-medium text-slate-600">Billing Default</p>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">{financial.invoice_due_day}</p>
-          <p className="mt-1 text-xs text-slate-500">Invoice due day each month</p>
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button type="button" onClick={handleReset} disabled={!isDirty || isSaving || !resetTarget} className="settings-button-secondary">
+                <RotateCcw className="h-4 w-4" />
+                Reset changes
+              </button>
+              <button type="submit" disabled={isSaving || !isDirty} className="settings-button-primary">
+                {isSaving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {isSaving ? "Saving..." : "Save Settings"}
+              </button>
             </div>
-            <IconBadge icon={Clock3} />
           </div>
-        </article>
-        <article className="panel p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-          <p className="text-sm font-medium text-slate-600">Security Deposit</p>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">
-            {formatCurrency(financial.default_security_deposit, financial.currency_code)}
-          </p>
-          <p className="mt-1 text-xs text-slate-500">Default financial baseline</p>
-            </div>
-            <IconBadge icon={Wallet} />
-          </div>
-        </article>
+        </form>
       </div>
-
-      <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
-        <div className="grid gap-6 xl:grid-cols-2">
-          <SectionCard icon={<Building2 className="h-5 w-5" />} title="Hostel Profile" description="Identity and operational context used across the platform.">
-            <div className="grid gap-3 md:grid-cols-2">
-              <FieldGroup label="Hostel Name" error={form.formState.errors.hostel?.name?.message} icon={<Building2 className="h-4 w-4" />}>
-                <input className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("hostel.name")} />
-              </FieldGroup>
-              <FieldGroup label="Hostel Code" error={form.formState.errors.hostel?.code?.message} icon={<Building2 className="h-4 w-4" />}>
-                <input className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm uppercase outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("hostel.code")} />
-              </FieldGroup>
-              <FieldGroup label="Email" error={form.formState.errors.hostel?.email?.message} icon={<Mail className="h-4 w-4" />}>
-                <input type="email" className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("hostel.email")} />
-              </FieldGroup>
-              <FieldGroup label="Phone" error={undefined} icon={<Phone className="h-4 w-4" />}>
-                <input className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("hostel.phone")} />
-              </FieldGroup>
-              <FieldGroup label="Timezone" error={form.formState.errors.hostel?.timezone?.message} icon={<Globe2 className="h-4 w-4" />}>
-                <input className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("hostel.timezone")} />
-              </FieldGroup>
-              <FieldGroup label="Address" error={undefined} icon={<MapPinned className="h-4 w-4" />}>
-                <textarea rows={3} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("hostel.address")} />
-              </FieldGroup>
-              <ToggleRow label="Hostel is active" icon={<ShieldCheck className="h-4 w-4" />}>
-                <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("hostel.is_active")} />
-              </ToggleRow>
-            </div>
-          </SectionCard>
-
-          <SectionCard icon={<Palette className="h-5 w-5" />} title="Branding" description="Visual identity and public-facing profile settings.">
-            <div className="grid gap-3 md:grid-cols-2">
-              <FieldGroup label="Brand Name" error={undefined} icon={<Palette className="h-4 w-4" />}>
-                <input className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("branding.brand_name")} />
-              </FieldGroup>
-              <FieldGroup label="Website URL" error={form.formState.errors.branding?.website_url?.message} icon={<Globe2 className="h-4 w-4" />}>
-                <input className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("branding.website_url")} />
-              </FieldGroup>
-              <FieldGroup label="Primary Color" error={form.formState.errors.branding?.primary_color?.message} icon={<Palette className="h-4 w-4" />}>
-                <input className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-mono text-sm uppercase outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("branding.primary_color")} />
-              </FieldGroup>
-              <FieldGroup label="Accent Color" error={form.formState.errors.branding?.accent_color?.message} icon={<Palette className="h-4 w-4" />}>
-                <input className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-mono text-sm uppercase outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("branding.accent_color")} />
-              </FieldGroup>
-            </div>
-          </SectionCard>
-        </div>
-
-        <div className="grid gap-6 xl:grid-cols-2">
-          <SectionCard icon={<Wallet className="h-5 w-5" />} title="Financial Defaults" description="Default fee timing and payment behavior.">
-            <div className="grid gap-3 md:grid-cols-2">
-              <FieldGroup label="Currency Code" error={form.formState.errors.financial?.currency_code?.message} icon={<Wallet className="h-4 w-4" />}>
-                <input maxLength={3} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm uppercase outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("financial.currency_code")} />
-              </FieldGroup>
-              <FieldGroup label="Invoice Due Day" error={undefined} icon={<Clock3 className="h-4 w-4" />}>
-                <input type="number" min={1} max={28} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("financial.invoice_due_day", { valueAsNumber: true })} />
-              </FieldGroup>
-              <FieldGroup label="Late Fee Amount" error={undefined} icon={<Wallet className="h-4 w-4" />}>
-                <input type="number" min={0} step="0.01" className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("financial.late_fee_amount", { valueAsNumber: true })} />
-              </FieldGroup>
-              <FieldGroup label="Default Security Deposit" error={undefined} icon={<Wallet className="h-4 w-4" />}>
-                <input type="number" min={0} step="0.01" className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("financial.default_security_deposit", { valueAsNumber: true })} />
-              </FieldGroup>
-              <FieldGroup label="Default Admission Fee" error={undefined} icon={<Wallet className="h-4 w-4" />}>
-                <input type="number" min={0} step="0.01" className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("financial.default_admission_fee", { valueAsNumber: true })} />
-              </FieldGroup>
-              <ToggleRow label="Allow partial payments" icon={<Wallet className="h-4 w-4" />}>
-                <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("financial.allow_partial_payments")} />
-              </ToggleRow>
-              <ToggleRow label="Auto-apply member credit" icon={<Wallet className="h-4 w-4" />}>
-                <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("financial.auto_apply_member_credit")} />
-              </ToggleRow>
-            </div>
-          </SectionCard>
-
-          <SectionCard icon={<Bell className="h-5 w-5" />} title="Notification Policies" description="Reminders, announcements, and attendance alerts.">
-            <div className="grid gap-3 md:grid-cols-2">
-              <ToggleRow label="Enable announcements" icon={<Bell className="h-4 w-4" />}>
-                <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("notifications.enable_announcements")} />
-              </ToggleRow>
-              <ToggleRow label="Enable fee reminders" icon={<Bell className="h-4 w-4" />}>
-                <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("notifications.enable_fee_reminders")} />
-              </ToggleRow>
-              <FieldGroup label="Reminder Days Before Due Date" error={undefined} icon={<Clock3 className="h-4 w-4" />}>
-                <input type="number" min={0} max={30} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("notifications.fee_reminder_days_before", { valueAsNumber: true })} />
-              </FieldGroup>
-              <FieldGroup label="Reminder Days After Due Date" error={undefined} icon={<Clock3 className="h-4 w-4" />}>
-                <input type="number" min={0} max={30} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("notifications.fee_reminder_days_after", { valueAsNumber: true })} />
-              </FieldGroup>
-              <ToggleRow label="Enable attendance alerts" icon={<Bell className="h-4 w-4" />}>
-                <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("notifications.enable_attendance_alerts")} />
-              </ToggleRow>
-            </div>
-          </SectionCard>
-        </div>
-
-        <div className="grid gap-6 xl:grid-cols-2">
-          <SectionCard icon={<Clock3 className="h-5 w-5" />} title="Operations" description="Attendance timing and checkout policy controls.">
-            <div className="grid gap-3 md:grid-cols-2">
-              <FieldGroup label="Attendance Cutoff Time" error={undefined} icon={<Clock3 className="h-4 w-4" />}>
-                <input type="time" className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("operations.attendance_cutoff_time")} />
-              </FieldGroup>
-              <FieldGroup label="Checkout Notice Days" error={undefined} icon={<Clock3 className="h-4 w-4" />}>
-                <input type="number" min={0} max={60} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]" {...form.register("operations.checkout_notice_days", { valueAsNumber: true })} />
-              </FieldGroup>
-              <ToggleRow label="Allow attendance corrections" icon={<Clock3 className="h-4 w-4" />}>
-                <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("operations.allow_attendance_corrections")} />
-              </ToggleRow>
-              <ToggleRow label="Require checkout clearance" icon={<ShieldCheck className="h-4 w-4" />}>
-                <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("operations.require_checkout_clearance")} />
-              </ToggleRow>
-            </div>
-          </SectionCard>
-
-          <SectionCard icon={<ShieldCheck className="h-5 w-5" />} title="Access Policies" description="Decide which roles inherit extra management and reporting visibility.">
-            <div className="space-y-3">
-              <ToggleRow label="Allow admins to manage staff users" icon={<ShieldCheck className="h-4 w-4" />}>
-                <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("access.allow_admin_manage_users")} />
-              </ToggleRow>
-              <ToggleRow label="Allow admins to manage hostel settings" icon={<ShieldCheck className="h-4 w-4" />}>
-                <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("access.allow_admin_manage_hostel_settings")} />
-              </ToggleRow>
-              <ToggleRow label="Allow wardens to view reports" icon={<ShieldCheck className="h-4 w-4" />}>
-                <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("access.allow_warden_view_reports")} />
-              </ToggleRow>
-              <ToggleRow label="Allow staff to view reports" icon={<ShieldCheck className="h-4 w-4" />}>
-                <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("access.allow_staff_view_reports")} />
-              </ToggleRow>
-            </div>
-          </SectionCard>
-        </div>
-
-        <div className="sticky bottom-3 z-20 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50/95 px-4 py-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-slate-600">
-            These settings affect billing defaults, communication behavior, reporting visibility, and operational workflow rules.
-          </p>
-          <button
-            type="submit"
-            disabled={updateSettingsMutation.isPending}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--color-brand-600)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--color-brand-700)] disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            {updateSettingsMutation.isPending ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            {updateSettingsMutation.isPending ? "Saving..." : "Save Settings"}
-          </button>
-        </div>
-      </form>
     </section>
   );
 }

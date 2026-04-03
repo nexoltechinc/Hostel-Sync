@@ -32,6 +32,30 @@ class MemberSerializer(serializers.ModelSerializer):
             "updated_at",
         )
         read_only_fields = ("id", "is_deleted", "created_at", "updated_at")
+        validators = []
+        extra_kwargs = {
+            "hostel": {"required": False},
+            "guardian_name": {"required": False, "allow_blank": True},
+            "id_number": {"required": False, "allow_blank": True},
+            "emergency_contact": {"required": False, "allow_blank": True},
+            "address": {"required": False, "allow_blank": True},
+            "leaving_date": {"required": False, "allow_null": True},
+            "remarks": {"required": False, "allow_blank": True},
+        }
+
+    def _resolve_hostel(self, attrs):
+        if "hostel" in attrs and attrs["hostel"] is not None:
+            return attrs["hostel"]
+
+        if self.instance is not None:
+            return self.instance.hostel
+
+        request = self.context.get("request")
+        if request is None:
+            return None
+
+        user = getattr(request, "user", None)
+        return getattr(user, "hostel", None)
 
     def validate_phone(self, value):
         if not PHONE_PATTERN.match(value):
@@ -44,8 +68,25 @@ class MemberSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
+        hostel = self._resolve_hostel(attrs)
+        member_code = attrs.get("member_code", getattr(self.instance, "member_code", None))
+        id_number = attrs.get("id_number", getattr(self.instance, "id_number", ""))
         status = attrs.get("status", getattr(self.instance, "status", None))
         leaving_date = attrs.get("leaving_date", getattr(self.instance, "leaving_date", None))
+
+        if hostel and member_code:
+            member_code_queryset = Member.objects.filter(hostel=hostel, member_code=member_code)
+            if self.instance is not None:
+                member_code_queryset = member_code_queryset.exclude(pk=self.instance.pk)
+            if member_code_queryset.exists():
+                raise serializers.ValidationError({"member_code": "Member code must be unique within the hostel."})
+
+        if hostel and id_number:
+            id_number_queryset = Member.objects.filter(hostel=hostel, id_number=id_number)
+            if self.instance is not None:
+                id_number_queryset = id_number_queryset.exclude(pk=self.instance.pk)
+            if id_number_queryset.exists():
+                raise serializers.ValidationError({"id_number": "ID number must be unique within the hostel."})
 
         if self.instance and status in {MemberStatus.INACTIVE, MemberStatus.CHECKED_OUT}:
             has_active_allotment = RoomAllotment.objects.filter(

@@ -27,7 +27,6 @@ const NAV_ITEMS = [
   { href: "/rooms", label: "Rooms", icon: navIcons.rooms },
   { href: "/allotments", label: "Allotments", icon: navIcons.allotments },
   { href: "/billing", label: "Billing", icon: navIcons.billing },
-  { href: "/notifications", label: "Notifications", icon: navIcons.notifications },
   { href: "/reports", label: "Reports", icon: navIcons.reports },
   { href: "/settings", label: "Settings", icon: navIcons.settings },
 ];

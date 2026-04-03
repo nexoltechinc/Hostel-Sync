@@ -3,10 +3,7 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  BadgeCheck,
-  CalendarCheck2,
   CircleAlert,
-  CircleDollarSign,
   LoaderCircle,
   ShieldCheck,
   Sparkles,
@@ -93,12 +90,6 @@ function formatTimestamp(timestamp: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(timestamp));
-}
-
-function formatStatusLabel(status: string) {
-  return status
-    .replace(/[_-]+/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function buildMetricCards(data: DashboardSummary): MetricCard[] {
@@ -284,34 +275,6 @@ export default function DashboardPage() {
   const metricCards = buildMetricCards(data);
   const pulseItems = buildPulseItems(data);
   const latestEvent = data.recent_activities[0];
-  const attentionItems = [
-    {
-      title: "Pending dues",
-      value: formatCurrency(data.financial.pending_dues),
-      detail:
-        data.financial.pending_dues === null
-          ? "Billing signal unavailable for this workspace."
-          : data.financial.pending_dues === 0
-            ? "No open receivables need follow-up right now."
-            : "Prioritize follow-up on residents with outstanding invoices.",
-      href: "/billing",
-      icon: CircleDollarSign,
-      accent: CARD_ACCENTS[4],
-    },
-    {
-      title: "Attendance exceptions",
-      value: formatCount(data.attendance.absent_today),
-      detail:
-        data.attendance.absent_today === null
-          ? "Attendance tracking has not reported yet."
-          : data.attendance.absent_today === 0
-            ? "No absences have been reported today."
-            : "Residents are currently marked absent and may need review.",
-      href: "/reports",
-      icon: CalendarCheck2,
-      accent: CARD_ACCENTS[3],
-    },
-  ];
   const spotlightStats: SpotlightStat[] = [
     {
       label: "Active residents",
@@ -520,122 +483,6 @@ export default function DashboardPage() {
             </Link>
           );
         })}
-      </div>
-
-      <div className="dashboard-fade-up grid gap-4 xl:grid-cols-[minmax(0,1.22fr)_360px] xl:items-start">
-        <section className="panel panel-soft p-4 md:p-5 xl:self-start">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-text-muted)]">Recent Activity</p>
-              <h2 className="mt-2 text-[1.65rem] font-semibold tracking-[-0.04em] text-[var(--color-text-strong)]">Operational timeline</h2>
-            </div>
-            <span className="dashboard-chip">
-              <BadgeCheck className="h-[0.7rem] w-[0.7rem]" />
-              {data.recent_activities.length.toLocaleString("en-US")} events
-            </span>
-          </div>
-
-          <div className="mt-4 space-y-2.5">
-            {data.recent_activities.length === 0 ? (
-              <article
-                className="rounded-[22px] border bg-[rgba(255,255,255,0.04)] px-3.5 py-3.5 text-sm text-[var(--color-text-soft)]"
-                style={{ borderColor: "var(--color-border)" }}
-              >
-                No recent activity is available yet.
-              </article>
-            ) : (
-              data.recent_activities.slice(0, 5).map((activity, index) => (
-                <article
-                  key={`${activity.type}-${activity.reference_id}`}
-                  className="rounded-[22px] border bg-[rgba(255,255,255,0.04)] px-3.5 py-3.5 transition hover:border-[var(--color-border-strong)]"
-                  style={{ borderColor: "var(--color-border)" }}
-                >
-                  <div className="flex items-start gap-4">
-                    <span
-                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[0.9rem] border"
-                      style={{
-                        borderColor: CARD_ACCENTS[index % CARD_ACCENTS.length].surface,
-                        background: `linear-gradient(180deg, ${CARD_ACCENTS[index % CARD_ACCENTS.length].surface}, rgba(255,255,255,0.02))`,
-                        color: CARD_ACCENTS[index % CARD_ACCENTS.length].solid,
-                      }}
-                    >
-                      <summaryIcons.recentActivity className="h-3 w-3" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <p className="text-sm font-semibold text-[var(--color-text-strong)]">{activity.title}</p>
-                        <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
-                          {formatTimestamp(activity.timestamp)}
-                        </p>
-                      </div>
-                      <p className="mt-1 text-sm leading-5 text-[var(--color-text-soft)]">{activity.description}</p>
-                      <div
-                        className="mt-3 inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]"
-                        style={{ borderColor: "var(--color-border)" }}
-                      >
-                        {formatStatusLabel(activity.type)}
-                      </div>
-                    </div>
-                  </div>
-                </article>
-              ))
-            )}
-          </div>
-        </section>
-
-        <aside className="space-y-4 xl:self-start">
-          <section className="panel panel-soft p-4">
-            <div className="flex items-center gap-3">
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-[0.9rem] border border-[rgba(251,113,133,0.18)] bg-[rgba(251,113,133,0.12)] text-[var(--status-danger)]">
-                <CircleAlert className="h-3 w-3" />
-              </span>
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-text-muted)]">Attention Board</p>
-                <h2 className="mt-1 text-[1.3rem] font-semibold tracking-[-0.03em] text-[var(--color-text-strong)]">Priority checks</h2>
-              </div>
-            </div>
-
-            <div className="mt-4 space-y-2.5">
-              {attentionItems.map((item) => {
-                const Icon = item.icon;
-
-                return (
-                  <Link
-                    key={item.title}
-                    href={item.href}
-                    className="group block rounded-[22px] border bg-[rgba(255,255,255,0.04)] p-3.5 transition hover:border-[var(--color-border-strong)]"
-                    style={{ borderColor: "var(--color-border)" }}
-                  >
-                    <div className="flex items-start gap-4">
-                      <span
-                        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[0.9rem] border"
-                        style={{
-                          borderColor: item.accent.surface,
-                          background: `linear-gradient(180deg, ${item.accent.surface}, rgba(255,255,255,0.02))`,
-                          color: item.accent.solid,
-                        }}
-                      >
-                        <Icon className="h-3 w-3" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-semibold text-[var(--color-text-strong)]">{item.title}</p>
-                          <span className="text-sm font-semibold text-[var(--color-text-strong)]">{item.value}</span>
-                        </div>
-                        <p className="mt-1 text-sm leading-5 text-[var(--color-text-soft)]">{item.detail}</p>
-                        <div className="mt-3 inline-flex items-center gap-1 text-xs font-semibold" style={{ color: item.accent.solid }}>
-                          Review now
-                          <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </section>
-
-        </aside>
       </div>
     </section>
   );
