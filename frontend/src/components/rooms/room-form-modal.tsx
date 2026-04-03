@@ -1,9 +1,9 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X } from "lucide-react";
+import { BedSingle, Building2, Sparkles, X } from "lucide-react";
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
 import type { Room, RoomType, RoomWritePayload } from "@/lib/types";
@@ -72,6 +72,10 @@ export function RoomFormModal({ isOpen, mode, room, showHostelField, isSubmittin
     resolver: zodResolver(roomSchema),
     defaultValues: defaultValues(room),
   });
+  const isRoomActive = useWatch({
+    control: form.control,
+    name: "is_active",
+  });
 
   useEffect(() => {
     if (isOpen) {
@@ -84,21 +88,33 @@ export function RoomFormModal({ isOpen, mode, room, showHostelField, isSubmittin
   }
 
   return (
-    <div className="fixed inset-0 z-40 bg-slate-950/65 sm:grid sm:place-items-center sm:p-4">
-      <div className="panel flex h-[100dvh] w-full flex-col rounded-none border-0 sm:h-auto sm:max-h-[95vh] sm:max-w-2xl sm:rounded-[1.75rem] sm:border">
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b bg-[var(--color-surface)]/95 px-4 py-4 backdrop-blur md:px-6" style={{ borderColor: "var(--color-border)" }}>
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900">{mode === "create" ? "Create Room" : "Edit Room"}</h2>
-            <p className="text-sm text-slate-600">Maintain room metadata and bed structure configuration.</p>
+    <div className="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-sm sm:grid sm:place-items-center sm:p-4" onClick={onClose}>
+      <div
+        className="members-modal-enter panel panel-elevated flex h-[100dvh] w-full flex-col rounded-none border-0 sm:h-auto sm:max-h-[95vh] sm:max-w-4xl sm:rounded-[1.75rem] sm:border"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="sticky top-0 z-10 border-b bg-[var(--color-surface)]/95 px-4 py-4 backdrop-blur md:px-6" style={{ borderColor: "var(--color-border)" }}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <span className="dashboard-chip">
+                <Sparkles className="h-3.5 w-3.5" />
+                Room onboarding
+              </span>
+              <h2 className="mt-2 text-lg font-semibold text-slate-900">{mode === "create" ? "Create Room" : "Edit Room"}</h2>
+              <p className="text-sm text-slate-600">Maintain room metadata and bed structure configuration from one flow.</p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close room form"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 text-slate-600 transition hover:bg-slate-100"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close room form"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 text-slate-600 transition hover:bg-slate-100"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/8">
+            <div className="members-progress-fill h-full rounded-full bg-[linear-gradient(90deg,#245df4,#1db5a8)]" />
+          </div>
         </div>
 
         <form
@@ -122,14 +138,39 @@ export function RoomFormModal({ isOpen, mode, room, showHostelField, isSubmittin
             });
           })}
         >
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6">
+          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-4 md:px-6">
+            <div className="grid gap-3 md:grid-cols-2">
+              <article className="members-upload-card">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[#8fb2ff]">
+                  <Building2 className="h-5 w-5" />
+                </span>
+                <span className="mt-3 block text-sm font-semibold text-[var(--color-text-strong)]">Room Profile</span>
+                <span className="mt-1 block text-xs text-[var(--color-text-muted)]">Define code, floor, and room type.</span>
+              </article>
+
+              <article className="members-upload-card">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[#77d0be]">
+                  <BedSingle className="h-5 w-5" />
+                </span>
+                <span className="mt-3 block text-sm font-semibold text-[var(--color-text-strong)]">Bed Structure</span>
+                <span className="mt-1 block text-xs text-[var(--color-text-muted)]">
+                  {mode === "create" ? "Preconfigure labels for instant room setup." : "Manage labels from the Bed Management section."}
+                </span>
+              </article>
+            </div>
+
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">Room and capacity details</p>
+              <span className="dashboard-chip">Step 1 of 1</span>
+            </div>
+
             <div className="grid gap-3 md:grid-cols-2">
               {showHostelField ? (
                 <label className="space-y-1">
                   <span className="text-sm font-medium text-slate-700">Hostel ID</span>
                   <input
                     type="number"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                    className="members-input"
                     {...form.register("hostel")}
                   />
                   {form.formState.errors.hostel ? (
@@ -142,7 +183,7 @@ export function RoomFormModal({ isOpen, mode, room, showHostelField, isSubmittin
                 <span className="text-sm font-medium text-slate-700">Room Number</span>
                 <input
                   type="text"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                  className="members-input"
                   {...form.register("room_code")}
                 />
                 {form.formState.errors.room_code ? (
@@ -154,7 +195,7 @@ export function RoomFormModal({ isOpen, mode, room, showHostelField, isSubmittin
                 <span className="text-sm font-medium text-slate-700">Floor / Block</span>
                 <input
                   type="text"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                  className="members-input"
                   {...form.register("floor")}
                 />
               </label>
@@ -164,7 +205,7 @@ export function RoomFormModal({ isOpen, mode, room, showHostelField, isSubmittin
                 <input
                   type="number"
                   min={1}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                  className="members-input"
                   {...form.register("capacity", { valueAsNumber: true })}
                 />
                 {form.formState.errors.capacity ? (
@@ -175,7 +216,7 @@ export function RoomFormModal({ isOpen, mode, room, showHostelField, isSubmittin
               <label className="space-y-1">
                 <span className="text-sm font-medium text-slate-700">Room Type</span>
                 <select
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                  className="members-select"
                   {...form.register("room_type")}
                 >
                   <option value="standard">Standard</option>
@@ -190,7 +231,7 @@ export function RoomFormModal({ isOpen, mode, room, showHostelField, isSubmittin
                   type="number"
                   min={0}
                   step="0.01"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                  className="members-input"
                   {...form.register("monthly_rent")}
                 />
               </label>
@@ -201,21 +242,39 @@ export function RoomFormModal({ isOpen, mode, room, showHostelField, isSubmittin
                   <input
                     type="text"
                     placeholder="A1, A2, A3"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                    className="members-input"
                     {...form.register("bed_labels")}
                   />
-                  <p className="text-xs text-slate-500">Leave blank to auto-generate beds as B1..Bn based on capacity.</p>
+                  <p className="text-xs text-[var(--color-text-muted)]">Leave blank to auto-generate beds as B1..Bn based on capacity.</p>
                 </label>
               ) : (
-                <p className="text-xs text-slate-500 md:col-span-2">
+                <p className="text-xs text-[var(--color-text-muted)] md:col-span-2">
                   Bed labels are managed separately using the room&apos;s Bed Management section.
                 </p>
               )}
 
-              <label className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-700 md:col-span-2">
-                <input type="checkbox" className="h-4 w-4 accent-[var(--color-brand-600)]" {...form.register("is_active")} />
-                Room is active
-              </label>
+              <section className="md:col-span-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <input type="checkbox" className="sr-only" {...form.register("is_active")} />
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--color-text-strong)]">Room Availability</p>
+                    <p className="text-xs text-[var(--color-text-muted)]">
+                      Mark this room as active to keep it available for allocation and operations.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => form.setValue("is_active", !isRoomActive, { shouldDirty: true })}
+                    className={`inline-flex h-7 w-12 items-center rounded-full border px-1 transition ${
+                      isRoomActive ? "border-[#4f7fff] bg-[#245df4]" : "border-white/20 bg-white/8"
+                    }`}
+                    aria-pressed={Boolean(isRoomActive)}
+                    aria-label="Toggle room availability"
+                  >
+                    <span className={`h-5 w-5 rounded-full bg-white transition ${isRoomActive ? "translate-x-5" : "translate-x-0"}`} />
+                  </button>
+                </div>
+              </section>
             </div>
           </div>
 
@@ -223,14 +282,14 @@ export function RoomFormModal({ isOpen, mode, room, showHostelField, isSubmittin
             <button
               type="button"
               onClick={onClose}
-              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 sm:w-auto"
+              className="w-full rounded-xl border border-white/18 bg-white/[0.04] px-4 py-3 text-sm font-medium text-[var(--color-text-soft)] transition hover:bg-white/[0.1] sm:w-auto"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full rounded-xl bg-[var(--color-brand-600)] px-4 py-3 text-sm font-medium text-white transition hover:bg-[var(--color-brand-700)] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+              className="w-full rounded-xl bg-[linear-gradient(135deg,#5f8cff_0%,#3758ff_58%,#2742cf_100%)] px-4 py-3 text-sm font-medium text-white shadow-[0_16px_36px_rgba(44,73,255,0.32)] transition hover:-translate-y-0.5 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
             >
               {isSubmitting ? "Saving..." : mode === "create" ? "Create Room" : "Update Room"}
             </button>

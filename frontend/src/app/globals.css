@@ -383,6 +383,62 @@ body::after {
   }
 }
 
+@keyframes roomsRise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0) scale(0.986);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes membersRise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes membersPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.18);
+  }
+}
+
+@keyframes membersMenuPop {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -6px, 0) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes membersModalEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
 ::selection {
   background: rgba(88, 129, 255, 0.28);
 }
@@ -585,6 +641,256 @@ body::after {
     animation: dashboardShimmer 1.4s ease-in-out infinite;
   }
 
+  .rooms-animate-rise {
+    animation: roomsRise 420ms cubic-bezier(0.22, 0.88, 0.24, 1) both;
+  }
+
+  .rooms-command {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      0 16px 34px rgba(4, 10, 23, 0.22);
+    transition:
+      border-color 180ms ease,
+      box-shadow 180ms ease,
+      transform 180ms ease;
+  }
+
+  .rooms-command:focus-within {
+    border-color: rgba(103, 145, 255, 0.48);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.09),
+      0 22px 44px rgba(23, 56, 152, 0.26);
+    transform: translate3d(0, -1px, 0);
+  }
+
+  .rooms-overview-card {
+    @apply rounded-[20px] border px-4 py-3;
+    border-color: rgba(144, 166, 198, 0.2);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.03) 100%),
+      rgba(255, 255, 255, 0.02);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .rooms-card {
+    transition:
+      transform 210ms ease,
+      border-color 210ms ease,
+      box-shadow 210ms ease;
+  }
+
+  .rooms-card:hover {
+    transform: translate3d(0, -3px, 0);
+    box-shadow: 0 28px 58px rgba(3, 7, 18, 0.42);
+    border-color: rgba(132, 165, 212, 0.38) !important;
+  }
+
+  .rooms-chip {
+    @apply inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium;
+    border-color: rgba(145, 170, 205, 0.24);
+    background: rgba(255, 255, 255, 0.06);
+    color: #d2deef;
+  }
+
+  .rooms-chip-active {
+    border-color: rgba(110, 231, 183, 0.35);
+    background: rgba(16, 185, 129, 0.15);
+    color: #a7f3d0;
+  }
+
+  .rooms-chip-muted {
+    border-color: rgba(251, 191, 36, 0.3);
+    background: rgba(245, 158, 11, 0.15);
+    color: #fde68a;
+  }
+
+  .rooms-stat {
+    @apply rounded-xl border px-2.5 py-1.5;
+    border-color: rgba(255, 255, 255, 0.13);
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .rooms-stat-label {
+    @apply inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.11em];
+    color: #9fb2ca;
+  }
+
+  .rooms-stat-value {
+    @apply mt-0.5 text-sm font-semibold;
+    color: #f4f8ff;
+  }
+
+  .rooms-skeleton {
+    @apply relative overflow-hidden rounded-[inherit];
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%),
+      rgba(255, 255, 255, 0.03);
+  }
+
+  .rooms-skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.15) 48%, transparent 100%);
+    animation: dashboardShimmer 1.35s ease-in-out infinite;
+  }
+
+  .rooms-input,
+  .rooms-select {
+    @apply w-full rounded-xl border px-3 text-sm outline-none;
+    color: var(--color-text-strong);
+    border-color: rgba(143, 168, 204, 0.26);
+    background: linear-gradient(180deg, rgba(19, 30, 48, 0.92) 0%, rgba(14, 23, 38, 0.88) 100%);
+    transition:
+      border-color 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  .rooms-input:focus,
+  .rooms-select:focus {
+    border-color: rgba(103, 145, 255, 0.75);
+    box-shadow: 0 0 0 3px rgba(103, 145, 255, 0.2);
+  }
+
+  .rooms-select option {
+    background: #0f1728;
+    color: #e3ecff;
+  }
+
+  .rooms-empty {
+    background:
+      radial-gradient(circle at 14% 10%, rgba(29, 181, 168, 0.2), transparent 34%),
+      radial-gradient(circle at 86% 12%, rgba(37, 93, 244, 0.18), transparent 42%),
+      linear-gradient(180deg, rgba(17, 25, 40, 0.82) 0%, rgba(11, 18, 30, 0.92) 100%);
+  }
+
+  .members-animate-rise {
+    animation: membersRise 420ms cubic-bezier(0.22, 0.88, 0.24, 1) both;
+  }
+
+  .members-status-pulse {
+    animation: membersPulse 2.2s ease-in-out infinite;
+  }
+
+  .members-action-pop {
+    transform-origin: top right;
+    animation: membersMenuPop 170ms cubic-bezier(0.2, 0.86, 0.24, 1) both;
+  }
+
+  .members-command {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      0 16px 34px rgba(4, 10, 23, 0.2);
+    transition:
+      box-shadow 180ms ease,
+      border-color 180ms ease,
+      transform 180ms ease;
+  }
+
+  .members-command:focus-within {
+    border-color: rgba(103, 145, 255, 0.48);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 22px 44px rgba(26, 59, 155, 0.24);
+    transform: translate3d(0, -1px, 0);
+  }
+
+  .members-overview-card {
+    @apply rounded-[20px] border px-4 py-3;
+    border-color: rgba(144, 166, 198, 0.2);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.03) 100%),
+      rgba(255, 255, 255, 0.02);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .members-filter-chip,
+  .members-filter-chip-active {
+    transition:
+      transform 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  .members-filter-chip:hover,
+  .members-filter-chip-active {
+    transform: translate3d(0, -1px, 0);
+  }
+
+  .members-card {
+    transition:
+      transform 200ms ease,
+      border-color 200ms ease,
+      box-shadow 200ms ease;
+  }
+
+  .members-card:hover {
+    transform: translate3d(0, -3px, 0);
+    box-shadow: 0 24px 54px rgba(3, 7, 18, 0.42);
+  }
+
+  .members-skeleton {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.03) 100%),
+      rgba(255, 255, 255, 0.03);
+  }
+
+  .members-skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.15) 50%, transparent 100%);
+    animation: dashboardShimmer 1.3s ease-in-out infinite;
+  }
+
+  .members-modal-enter {
+    animation: membersModalEnter 260ms cubic-bezier(0.2, 0.9, 0.24, 1) both;
+  }
+
+  .members-progress-fill {
+    transform-origin: left;
+    animation: dashboardProgressFill 620ms cubic-bezier(0.2, 0.88, 0.24, 1) both;
+  }
+
+  .members-upload-card {
+    @apply rounded-2xl border p-4 transition;
+    border-color: rgba(145, 170, 205, 0.2);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%),
+      rgba(255, 255, 255, 0.02);
+  }
+
+  .members-upload-card:hover {
+    border-color: rgba(115, 163, 255, 0.4);
+    background:
+      linear-gradient(180deg, rgba(115, 163, 255, 0.11) 0%, rgba(31, 165, 158, 0.08) 100%),
+      rgba(255, 255, 255, 0.03);
+  }
+
+  .members-input,
+  .members-select,
+  .members-textarea {
+    @apply w-full rounded-xl border px-3 py-3 text-sm outline-none;
+    color: var(--color-text-strong);
+    border-color: rgba(143, 168, 204, 0.24);
+    background: linear-gradient(180deg, rgba(19, 29, 48, 0.9) 0%, rgba(15, 23, 37, 0.86) 100%);
+    transition:
+      border-color 180ms ease,
+      box-shadow 180ms ease,
+      background-color 180ms ease;
+  }
+
+  .members-input:focus,
+  .members-select:focus,
+  .members-textarea:focus {
+    border-color: rgba(103, 145, 255, 0.75);
+    box-shadow: 0 0 0 3px rgba(103, 145, 255, 0.2);
+  }
+
+  .members-select option {
+    background: #0f1728;
+    color: #e3ecff;
+  }
+
   .status-dot {
     @apply inline-flex h-2 w-2 rounded-full;
     box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 16%, transparent);
@@ -676,6 +982,13 @@ body::after {
   .dashboard-progress-fill,
   .dashboard-progress-fill::after,
   .dashboard-skeleton::after,
+  .rooms-animate-rise,
+  .rooms-skeleton::after,
+  .members-animate-rise,
+  .members-status-pulse,
+  .members-action-pop,
+  .members-modal-enter,
+  .members-progress-fill,
   .login-orb,
   .login-orb-drift,
   .login-pulse,

@@ -2,19 +2,21 @@
 
 import {
   ArrowUpDown,
+  BadgeCheck,
   ChevronLeft,
   ChevronRight,
   EllipsisVertical,
   Filter,
   LoaderCircle,
   Pencil,
-  Phone,
   Plus,
   Search,
+  Sparkles,
   Trash2,
   UserCog,
   UserMinus,
   UserRoundCheck,
+  Users,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -126,26 +128,10 @@ function getAvatarBackground(seed: string) {
 
 function getMetaLine(member: Member) {
   if (member.status === "checked_out" && member.leaving_date) {
-    return `${member.member_code} • Left ${formatShortDate(member.leaving_date)}`;
+    return `${member.member_code} | Left ${formatShortDate(member.leaving_date)}`;
   }
 
-  return `${member.member_code} • Joined ${formatShortDate(member.joining_date)}`;
-}
-
-function getSubMetaLine(member: Member) {
-  if (member.id_number) {
-    return `ID ${member.id_number}`;
-  }
-
-  if (member.guardian_name) {
-    return `Guardian: ${member.guardian_name}`;
-  }
-
-  if (member.address) {
-    return member.address;
-  }
-
-  return "Profile ready for room, billing, and attendance linkage";
+  return `${member.member_code} | Joined ${formatShortDate(member.joining_date)}`;
 }
 
 function isManageMembersAllowed(permissions: string[]) {
@@ -166,6 +152,35 @@ function buildSections(members: Member[]) {
       members: members.filter((member) => member.status === status),
     }))
     .filter((section) => section.members.length > 0);
+}
+
+function getPaginationWindow(page: number, totalPages: number) {
+  if (totalPages <= 5) {
+    return Array.from({ length: totalPages }, (_, idx) => idx + 1);
+  }
+
+  const start = Math.max(1, Math.min(page - 1, totalPages - 4));
+  return Array.from({ length: 5 }, (_, idx) => start + idx);
+}
+
+function MembersLoadingSkeleton() {
+  return (
+    <div className="grid gap-4 xl:grid-cols-2">
+      {Array.from({ length: 6 }, (_, index) => (
+        <article
+          key={index}
+          className="members-animate-rise relative min-h-[210px] overflow-hidden rounded-[26px] border"
+          style={{
+            animationDelay: `${index * 55}ms`,
+            borderColor: "rgba(133, 160, 188, 0.2)",
+            background: "linear-gradient(180deg, rgba(16,24,40,0.82) 0%, rgba(12,19,33,0.86) 100%)",
+          }}
+        >
+          <div className="members-skeleton absolute inset-0" />
+        </article>
+      ))}
+    </div>
+  );
 }
 
 export default function MembersPage() {
@@ -206,6 +221,15 @@ export default function MembersPage() {
   const isMutating = createMemberMutation.isPending || updateMemberMutation.isPending || deleteMemberMutation.isPending;
   const totalPages = Math.max(1, Math.ceil((membersQuery.data?.count ?? 0) / 20));
   const activeFiltersCount = Number(statusFilter !== "all") + Number(genderFilter !== "all") + Number(Boolean(searchInput.trim()));
+  const paginationWindow = useMemo(() => getPaginationWindow(page, totalPages), [page, totalPages]);
+  const visibleStatusCounts = useMemo(
+    () => ({
+      active: members.filter((member) => member.status === "active").length,
+      inactive: members.filter((member) => member.status === "inactive").length,
+      checked_out: members.filter((member) => member.status === "checked_out").length,
+    }),
+    [members],
+  );
 
   async function submitForm(payload: MemberWritePayload) {
     setErrorMessage(null);
@@ -306,9 +330,13 @@ export default function MembersPage() {
         <div className="pointer-events-none absolute inset-x-8 top-28 h-px bg-white/5" />
 
         <div className="relative z-10 space-y-6">
-          <header className="flex items-start justify-between gap-4">
+          <header className="dashboard-fade-up flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-[clamp(1.95rem,6vw,3rem)] font-semibold leading-none tracking-[-0.04em] text-white">Members List</p>
+              <span className="dashboard-chip">
+                <Sparkles className="h-3.5 w-3.5" />
+                Resident operations center
+              </span>
+              <p className="mt-3 text-[clamp(1.95rem,6vw,3rem)] font-semibold leading-none tracking-[-0.04em] text-white">Members List</p>
               <p className="mt-2 text-sm sm:text-base" style={{ color: "#96a5c4" }}>
                 {formatCountLabel(membersQuery.data?.count ?? 0, statusFilter)}
               </p>
@@ -321,7 +349,7 @@ export default function MembersPage() {
                   setPage(1);
                   setOrdering((current) => (current === "-id" ? "full_name" : "-id"));
                 }}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border text-[#9eb6ff] transition hover:border-[#4f7fff] hover:bg-[#172338]"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border text-[#9eb6ff] transition hover:-translate-y-0.5 hover:border-[#4f7fff] hover:bg-[#172338]"
                 style={{ borderColor: "rgba(126, 146, 205, 0.18)", backgroundColor: "rgba(17, 24, 41, 0.45)" }}
                 aria-label={ordering === "-id" ? "Sort alphabetically" : "Sort by newest"}
                 title={ordering === "-id" ? "Sort alphabetically" : "Sort by newest"}
@@ -342,6 +370,29 @@ export default function MembersPage() {
             </div>
           </header>
 
+          <div className="dashboard-fade-up grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="members-overview-card">
+              <span className="text-xs uppercase tracking-[0.18em] text-[#95a7ca]">Visible now</span>
+              <p className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-white">{members.length.toLocaleString("en-US")}</p>
+              <p className="mt-1 text-xs text-[#8ea2ca]">Results on this page</p>
+            </div>
+            <div className="members-overview-card">
+              <span className="text-xs uppercase tracking-[0.18em] text-[#95a7ca]">Active</span>
+              <p className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-sky-300">{visibleStatusCounts.active.toLocaleString("en-US")}</p>
+              <p className="mt-1 text-xs text-[#8ea2ca]">Currently staying</p>
+            </div>
+            <div className="members-overview-card">
+              <span className="text-xs uppercase tracking-[0.18em] text-[#95a7ca]">Inactive</span>
+              <p className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-slate-300">{visibleStatusCounts.inactive.toLocaleString("en-US")}</p>
+              <p className="mt-1 text-xs text-[#8ea2ca]">Temporarily paused</p>
+            </div>
+            <div className="members-overview-card">
+              <span className="text-xs uppercase tracking-[0.18em] text-[#95a7ca]">Checked out</span>
+              <p className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-amber-200">{visibleStatusCounts.checked_out.toLocaleString("en-US")}</p>
+              <p className="mt-1 text-xs text-[#8ea2ca]">Past residents</p>
+            </div>
+          </div>
+
           {feedback ? (
             <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{feedback}</div>
           ) : null}
@@ -349,9 +400,9 @@ export default function MembersPage() {
             <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{errorMessage}</div>
           ) : null}
 
-          <div className="space-y-4">
+          <div className="dashboard-fade-up space-y-4">
             <div
-              className="flex items-center gap-3 rounded-[28px] border px-4 py-3.5 sm:px-5"
+              className="members-command flex items-center gap-3 rounded-[28px] border px-4 py-3.5 sm:px-5"
               style={{
                 background: "linear-gradient(135deg, rgba(40, 61, 42, 0.98) 0%, rgba(31, 48, 34, 0.98) 100%)",
                 borderColor: "rgba(112, 137, 111, 0.22)",
@@ -366,7 +417,7 @@ export default function MembersPage() {
                   setSearchInput(event.target.value);
                 }}
                 placeholder="Search name, phone, or email..."
-                className="w-full bg-transparent text-base text-white outline-none placeholder:text-[#91a08a] sm:text-lg"
+                className="w-full bg-transparent text-base text-white outline-none placeholder:text-[#8ea0c6] sm:text-lg"
               />
               <button
                 type="button"
@@ -394,8 +445,8 @@ export default function MembersPage() {
                       }}
                       className={`inline-flex shrink-0 items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-medium transition ${
                         active
-                          ? "border-[#3f8cff] bg-[#173459] text-[#56a7ff] shadow-[inset_0_0_0_1px_rgba(115,181,255,0.22)]"
-                          : "border-[#38503c] bg-[#2c3e2d] text-[#e3e9dc] hover:border-[#48614c] hover:bg-[#314534]"
+                          ? "members-filter-chip-active border-[#3f8cff] bg-[#173459] text-[#56a7ff] shadow-[inset_0_0_0_1px_rgba(115,181,255,0.22)]"
+                          : "members-filter-chip border-[#38503c] bg-[#2c3e2d] text-[#e3e9dc] hover:border-[#48614c] hover:bg-[#314534]"
                       }`}
                     >
                       {active ? <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#224e7e] text-[#67b3ff]"><UserRoundCheck className="h-3.5 w-3.5" /></span> : null}
@@ -452,12 +503,7 @@ export default function MembersPage() {
           </div>
 
           {membersQuery.isLoading ? (
-            <div className="grid min-h-[360px] place-items-center rounded-[28px] border border-white/8 bg-white/[0.02] text-sm text-[#93a2c7]">
-              <div className="inline-flex items-center gap-2">
-                <LoaderCircle className="h-4 w-4 animate-spin" />
-                Loading members...
-              </div>
-            </div>
+            <MembersLoadingSkeleton />
           ) : membersQuery.isError ? (
             <div className="rounded-[28px] border border-rose-400/20 bg-rose-500/10 px-4 py-5 text-sm text-rose-200">
               {membersQuery.error instanceof Error ? membersQuery.error.message : "Failed to load members."}
@@ -469,54 +515,54 @@ export default function MembersPage() {
             </div>
           ) : (
             <div className="space-y-8">
-              {sections.map((section) => (
-                <div key={section.key} className="space-y-4">
+              {sections.map((section, sectionIndex) => (
+                <div key={section.key} className="members-animate-rise space-y-4" style={{ animationDelay: `${sectionIndex * 90}ms` }}>
                   <div className="flex items-center justify-between gap-3 border-b border-white/8 pb-3">
                     <div>
                       <h2 className="text-lg font-semibold uppercase tracking-[0.1em] text-[#47a2ff]">{section.title}</h2>
                       <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[#7f90b4]">{section.members.length} visible on this page</p>
                     </div>
+                    <span className="dashboard-chip">
+                      <Users className="h-3.5 w-3.5" />
+                      Segment live
+                    </span>
                   </div>
 
-                  <div className="grid gap-4 xl:grid-cols-2">
-                    {section.members.map((member) => {
+                  <div className="space-y-1">
+                    {section.members.map((member, memberIndex) => {
                       const statusMeta = STATUS_META[member.status];
 
                       return (
                         <article
                           key={member.id}
-                          className={`relative rounded-[28px] border p-4 shadow-[0_16px_42px_rgba(3,7,18,0.34)] sm:p-5 ${openActionMenuId === member.id ? 'z-50' : 'z-0'}`}
+                          className={`members-animate-rise relative border-b px-1 py-4 sm:px-2 ${openActionMenuId === member.id ? "z-50" : "z-0"}`}
                           style={{
-                            background: statusMeta.cardBackground,
-                            borderColor: statusMeta.cardBorder,
+                            animationDelay: `${sectionIndex * 80 + memberIndex * 40}ms`,
+                            borderColor: "rgba(148, 166, 200, 0.2)",
                           }}
                         >
-                          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/12 to-transparent" />
                           <div className="flex items-start gap-4">
                             <div className="relative shrink-0">
                               <div
-                                className="flex h-16 w-16 items-center justify-center rounded-[22px] text-xl font-semibold text-white shadow-[0_10px_24px_rgba(0,0,0,0.2)] sm:h-[72px] sm:w-[72px] sm:text-2xl"
+                                className="flex h-14 w-14 items-center justify-center rounded-[18px] text-lg font-semibold text-white shadow-[0_10px_24px_rgba(0,0,0,0.2)] sm:h-16 sm:w-16 sm:text-xl"
                                 style={{ background: getAvatarBackground(member.full_name) }}
                               >
                                 {getInitials(member.full_name)}
                               </div>
-                              <span className={`absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-[#0d1321] ${statusMeta.dotClass}`} />
+                              <span className={`members-status-pulse absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-[#0d1321] ${statusMeta.dotClass}`} />
                             </div>
 
                             <div className="min-w-0 flex-1">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
-                                  <Link href={`/members/${member.id}`} className="block truncate text-[1.55rem] font-semibold tracking-[-0.03em] text-white transition hover:text-[#a9c9ff] sm:text-[1.7rem]">
+                                  <Link href={`/members/${member.id}`} className="block truncate text-[1.2rem] font-semibold tracking-[-0.02em] text-white transition hover:text-[#a9c9ff] sm:text-[1.35rem]">
                                     {member.full_name}
                                   </Link>
-                                  <p className="mt-1 truncate text-base text-[#b3bed4] sm:text-[1.05rem]">{getMetaLine(member)}</p>
+                                  <p className="mt-1 truncate text-sm text-[#b3bed4]">{getMetaLine(member)}</p>
                                 </div>
 
                                 <div className="relative shrink-0" onClick={(event) => event.stopPropagation()}>
                                   <div className="flex items-center gap-2">
-                                    <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] ${statusMeta.pillClass}`}>
-                                      {statusMeta.label}
-                                    </span>
                                     {canManageMembers ? (
                                       <button
                                         type="button"
@@ -530,7 +576,7 @@ export default function MembersPage() {
                                   </div>
 
                                   {openActionMenuId === member.id ? (
-                                    <div className="absolute right-0 top-12 z-20 w-48 rounded-2xl border border-white/10 bg-[#121a2c] p-2 shadow-[0_24px_44px_rgba(2,6,23,0.54)]">
+                                    <div className="members-action-pop absolute right-0 top-12 z-20 w-48 rounded-2xl border border-white/10 bg-[#121a2c] p-2 shadow-[0_24px_44px_rgba(2,6,23,0.54)]">
                                       <Link
                                         href={`/members/${member.id}`}
                                         className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-[#dfe7ff] transition hover:bg-white/5"
@@ -590,21 +636,14 @@ export default function MembersPage() {
                                 </div>
                               </div>
 
-                              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[#93a2c7]">
-                                <span className="inline-flex items-center gap-2">
-                                  <Phone className="h-4 w-4 text-[#7ea2ff]" />
-                                  {member.phone}
-                                </span>
-                                <span className="truncate text-[#7f90b4]">{getSubMetaLine(member)}</span>
-                              </div>
-
-                              <div className="mt-4 flex flex-wrap items-center gap-2">
+                              <div className="mt-3 flex flex-wrap items-center gap-2">
                                 <span className="rounded-full border border-white/8 bg-white/[0.04] px-3 py-1 text-xs font-medium uppercase tracking-[0.08em] text-[#d9e3ff]">
                                   {member.gender}
                                 </span>
                                 <span className="rounded-full border border-white/8 bg-white/[0.04] px-3 py-1 text-xs font-medium uppercase tracking-[0.08em] text-[#9eb0d7]">
                                   Hostel {member.hostel}
                                 </span>
+                                <span className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] ${statusMeta.pillClass}`}>{statusMeta.label}</span>
                               </div>
                             </div>
                           </div>
@@ -623,7 +662,7 @@ export default function MembersPage() {
               <p className="text-xs text-[#8fa0c4]">Total records: {(membersQuery.data?.count ?? 0).toLocaleString("en-US")}</p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => setPage((value) => Math.max(value - 1, 1))}
@@ -633,6 +672,22 @@ export default function MembersPage() {
                 <ChevronLeft className="h-4 w-4" />
                 Previous
               </button>
+
+              <div className="inline-flex items-center gap-1 rounded-2xl border border-white/10 bg-white/[0.03] p-1">
+                {paginationWindow.map((targetPage) => (
+                  <button
+                    key={targetPage}
+                    type="button"
+                    onClick={() => setPage(targetPage)}
+                    className={`inline-flex h-9 min-w-9 items-center justify-center rounded-xl px-2 text-sm font-semibold transition ${
+                      targetPage === page ? "bg-[#2f67ff] text-white shadow-[0_8px_20px_rgba(47,103,255,0.36)]" : "text-[#95a8cf] hover:bg-white/8 hover:text-white"
+                    }`}
+                  >
+                    {targetPage}
+                  </button>
+                ))}
+              </div>
+
               <button
                 type="button"
                 onClick={() => setPage((value) => value + 1)}
@@ -640,8 +695,12 @@ export default function MembersPage() {
                 className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-[#d9e3ff] transition hover:bg-white/[0.07] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Next
-                <ChevronRight className="h-4 w-4" />
+                {membersQuery.isLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <ChevronRight className="h-4 w-4" />}
               </button>
+              <span className="dashboard-chip">
+                <BadgeCheck className="h-3.5 w-3.5" />
+                Live data
+              </span>
             </div>
           </footer>
         </div>
@@ -673,3 +732,4 @@ export default function MembersPage() {
     </>
   );
 }
+

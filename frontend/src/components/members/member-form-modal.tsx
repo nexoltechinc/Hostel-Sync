@@ -1,8 +1,8 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X } from "lucide-react";
-import { useEffect } from "react";
+import { Camera, FileUp, QrCode, Sparkles, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
@@ -104,33 +104,67 @@ export function MemberFormModal({
     control: form.control,
     name: "status",
   });
+  const [welcomeEnabled, setWelcomeEnabled] = useState(true);
+  const [qrPreviewReady, setQrPreviewReady] = useState(false);
+  const [photoName, setPhotoName] = useState<string | null>(null);
+  const [documentNames, setDocumentNames] = useState<string[]>([]);
 
   useEffect(() => {
     if (isOpen) {
       form.reset(defaultValues(member));
+      setWelcomeEnabled(true);
+      setQrPreviewReady(false);
+      setPhotoName(null);
+      setDocumentNames([]);
     }
   }, [form, isOpen, member]);
+
+  function onPhotoSelected(files: FileList | null) {
+    const file = files?.[0];
+    setPhotoName(file ? file.name : null);
+  }
+
+  function onDocumentsSelected(files: FileList | null) {
+    if (!files || files.length === 0) {
+      setDocumentNames([]);
+      return;
+    }
+
+    setDocumentNames(Array.from(files).map((file) => file.name));
+  }
 
   if (!isOpen) {
     return null;
   }
 
   return (
-    <div className="fixed inset-0 z-40 bg-slate-950/65 sm:grid sm:place-items-center sm:p-4">
-      <div className="panel flex h-[100dvh] w-full flex-col rounded-none border-0 sm:h-auto sm:max-h-[95vh] sm:max-w-3xl sm:rounded-[1.75rem] sm:border">
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b bg-[var(--color-surface)]/95 px-4 py-4 backdrop-blur md:px-6" style={{ borderColor: "var(--color-border)" }}>
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900">{mode === "create" ? "Create Member" : "Edit Member"}</h2>
-            <p className="text-sm text-slate-600">Maintain member profile and lifecycle details.</p>
+    <div className="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-sm sm:grid sm:place-items-center sm:p-4" onClick={onClose}>
+      <div
+        className="members-modal-enter panel panel-elevated flex h-[100dvh] w-full flex-col rounded-none border-0 sm:h-auto sm:max-h-[95vh] sm:max-w-4xl sm:rounded-[1.75rem] sm:border"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="sticky top-0 z-10 border-b bg-[var(--color-surface)]/95 px-4 py-4 backdrop-blur md:px-6" style={{ borderColor: "var(--color-border)" }}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <span className="dashboard-chip">
+                <Sparkles className="h-3.5 w-3.5" />
+                Resident onboarding
+              </span>
+              <h2 className="mt-2 text-lg font-semibold text-slate-900">{mode === "create" ? "Create Member" : "Edit Member"}</h2>
+              <p className="text-sm text-slate-600">Maintain profile, residency, and communication details from one flow.</p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close member form"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 text-slate-600 transition hover:bg-slate-100"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close member form"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 text-slate-600 transition hover:bg-slate-100"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/8">
+            <div className="members-progress-fill h-full rounded-full bg-[linear-gradient(90deg,#245df4,#1db5a8)]" />
+          </div>
         </div>
 
         <form
@@ -158,14 +192,41 @@ export function MemberFormModal({
             });
           })}
         >
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6">
+          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-4 md:px-6">
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="members-upload-card cursor-pointer">
+                <input type="file" accept="image/*" className="sr-only" onChange={(event) => onPhotoSelected(event.target.files)} />
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[#8fb2ff]">
+                  <Camera className="h-5 w-5" />
+                </span>
+                <span className="mt-3 block text-sm font-semibold text-[var(--color-text-strong)]">Profile Photo</span>
+                <span className="mt-1 block text-xs text-[var(--color-text-muted)]">{photoName ?? "Drag and drop or click to upload"}</span>
+              </label>
+
+              <label className="members-upload-card cursor-pointer">
+                <input type="file" multiple className="sr-only" onChange={(event) => onDocumentsSelected(event.target.files)} />
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[#77d0be]">
+                  <FileUp className="h-5 w-5" />
+                </span>
+                <span className="mt-3 block text-sm font-semibold text-[var(--color-text-strong)]">Documents</span>
+                <span className="mt-1 block text-xs text-[var(--color-text-muted)]">
+                  {documentNames.length > 0 ? `${documentNames.length} file(s) selected` : "Attach ID, agreement, or records"}
+                </span>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">Personal and hostel details</p>
+              <span className="dashboard-chip">Step 1 of 1</span>
+            </div>
+
             <div className="grid gap-3 md:grid-cols-2">
               {showHostelField ? (
                 <label className="space-y-1">
                   <span className="text-sm font-medium text-slate-700">Hostel ID</span>
                   <input
                     type="number"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                    className="members-input"
                     {...form.register("hostel")}
                   />
                   {form.formState.errors.hostel ? (
@@ -178,7 +239,7 @@ export function MemberFormModal({
                 <span className="text-sm font-medium text-slate-700">Member Code</span>
                 <input
                   type="text"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                  className="members-input"
                   {...form.register("member_code")}
                 />
                 {form.formState.errors.member_code ? (
@@ -190,7 +251,7 @@ export function MemberFormModal({
               <span className="text-sm font-medium text-slate-700">Full Name</span>
               <input
                 type="text"
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                className="members-input"
                 {...form.register("full_name")}
               />
               {form.formState.errors.full_name ? (
@@ -202,7 +263,7 @@ export function MemberFormModal({
               <span className="text-sm font-medium text-slate-700">Phone</span>
               <input
                 type="text"
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                className="members-input"
                 {...form.register("phone")}
               />
               {form.formState.errors.phone ? (
@@ -214,7 +275,7 @@ export function MemberFormModal({
               <span className="text-sm font-medium text-slate-700">Guardian Name</span>
               <input
                 type="text"
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                className="members-input"
                 {...form.register("guardian_name")}
               />
             </label>
@@ -223,7 +284,7 @@ export function MemberFormModal({
               <span className="text-sm font-medium text-slate-700">Emergency Contact</span>
               <input
                 type="text"
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                className="members-input"
                 {...form.register("emergency_contact")}
               />
               {form.formState.errors.emergency_contact ? (
@@ -235,7 +296,7 @@ export function MemberFormModal({
               <span className="text-sm font-medium text-slate-700">Joining Date</span>
               <input
                 type="date"
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                className="members-input"
                 {...form.register("joining_date")}
               />
               {form.formState.errors.joining_date ? (
@@ -246,7 +307,7 @@ export function MemberFormModal({
             <label className="space-y-1">
               <span className="text-sm font-medium text-slate-700">Gender</span>
               <select
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                className="members-select"
                 {...form.register("gender")}
               >
                 <option value="male">Male</option>
@@ -258,7 +319,7 @@ export function MemberFormModal({
             <label className="space-y-1">
               <span className="text-sm font-medium text-slate-700">Status</span>
               <select
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                className="members-select"
                 {...form.register("status")}
               >
                 <option value="active">Active</option>
@@ -272,7 +333,7 @@ export function MemberFormModal({
                 <span className="text-sm font-medium text-slate-700">Leaving Date</span>
                 <input
                   type="date"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                  className="members-input"
                   {...form.register("leaving_date")}
                 />
                 {form.formState.errors.leaving_date ? (
@@ -285,7 +346,7 @@ export function MemberFormModal({
               <span className="text-sm font-medium text-slate-700">ID Number</span>
               <input
                 type="text"
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                className="members-input"
                 {...form.register("id_number")}
               />
             </label>
@@ -294,19 +355,63 @@ export function MemberFormModal({
               <span className="text-sm font-medium text-slate-700">Address</span>
               <textarea
                 rows={2}
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                className="members-textarea"
                 {...form.register("address")}
               />
             </label>
 
             <label className="space-y-1 md:col-span-2">
-              <span className="text-sm font-medium text-slate-700">Remarks</span>
+              <span className="text-sm font-medium text-slate-700">Member Details</span>
               <textarea
-                rows={3}
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-300)]"
+                rows={4}
+                className="members-textarea"
+                placeholder="Write member details, notes, preferences, or special instructions..."
                 {...form.register("remarks")}
               />
             </label>
+
+            <section className="md:col-span-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-[var(--color-text-strong)]">Welcome Notification</p>
+                  <p className="text-xs text-[var(--color-text-muted)]">Send a welcome message after saving this profile.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setWelcomeEnabled((value) => !value)}
+                  className={`inline-flex h-7 w-12 items-center rounded-full border px-1 transition ${
+                    welcomeEnabled ? "border-[#4f7fff] bg-[#245df4]" : "border-white/20 bg-white/8"
+                  }`}
+                  aria-pressed={welcomeEnabled}
+                  aria-label="Toggle welcome notification"
+                >
+                  <span className={`h-5 w-5 rounded-full bg-white transition ${welcomeEnabled ? "translate-x-5" : "translate-x-0"}`} />
+                </button>
+              </div>
+            </section>
+
+            <section className="md:col-span-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-[var(--color-text-strong)]">Check-in QR</p>
+                  <p className="text-xs text-[var(--color-text-muted)]">Generate a quick QR for reception check-ins.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setQrPreviewReady(true)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/8 px-3 py-2 text-sm font-medium text-[var(--color-text-strong)] transition hover:bg-white/14"
+                >
+                  <QrCode className="h-4 w-4" />
+                  Generate QR
+                </button>
+              </div>
+              {qrPreviewReady ? (
+                <div className="mt-3 inline-flex items-center gap-2 rounded-xl border border-[#4f7fff]/35 bg-[#1e2e5d]/50 px-3 py-2 text-xs text-[#c7d8ff]">
+                  <QrCode className="h-4 w-4" />
+                  QR preview is ready and can be attached after save.
+                </div>
+              ) : null}
+            </section>
           </div>
           </div>
 
@@ -314,14 +419,14 @@ export function MemberFormModal({
             <button
               type="button"
               onClick={onClose}
-              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 sm:w-auto"
+              className="w-full rounded-xl border border-white/18 bg-white/[0.04] px-4 py-3 text-sm font-medium text-[var(--color-text-soft)] transition hover:bg-white/[0.1] sm:w-auto"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full rounded-xl bg-[var(--color-brand-600)] px-4 py-3 text-sm font-medium text-white transition hover:bg-[var(--color-brand-700)] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+              className="w-full rounded-xl bg-[linear-gradient(135deg,#5f8cff_0%,#3758ff_58%,#2742cf_100%)] px-4 py-3 text-sm font-medium text-white shadow-[0_16px_36px_rgba(44,73,255,0.32)] transition hover:-translate-y-0.5 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
             >
               {isSubmitting ? "Saving..." : mode === "create" ? "Create Member" : "Update Member"}
             </button>
