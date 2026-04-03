@@ -138,7 +138,7 @@ export default function RoomsPage() {
   const updateBedMutation = useUpdateBed();
   const deleteBedMutation = useDeleteBed();
 
-  const rooms = roomsQuery.data?.results ?? [];
+  const rooms = useMemo(() => roomsQuery.data?.results ?? [], [roomsQuery.data?.results]);
   const isMutating =
     createRoomMutation.isPending ||
     updateRoomMutation.isPending ||

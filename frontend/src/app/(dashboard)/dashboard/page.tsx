@@ -4,7 +4,6 @@ import Link from "next/link";
 import {
   ArrowRight,
   BadgeCheck,
-  BellRing,
   CalendarCheck2,
   CircleAlert,
   CircleDollarSign,
@@ -41,6 +40,13 @@ type PulseItem = {
   value: string;
   helper: string;
   progress: number;
+  accent: Accent;
+};
+
+type SpotlightStat = {
+  label: string;
+  value: string;
+  detail: string;
   accent: Accent;
 };
 
@@ -95,24 +101,6 @@ function formatStatusLabel(status: string) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function getStatusTone(status: string) {
-  const normalized = status.toLowerCase();
-
-  if (
-    ["ok", "ready", "healthy", "active", "enabled", "connected", "complete", "configured", "available"].some((token) =>
-      normalized.includes(token),
-    )
-  ) {
-    return { label: "Healthy", color: "var(--status-success)" };
-  }
-
-  if (["error", "failed", "offline", "disabled", "blocked", "missing"].some((token) => normalized.includes(token))) {
-    return { label: "Needs attention", color: "var(--status-danger)" };
-  }
-
-  return { label: "In progress", color: "var(--status-warning)" };
-}
-
 function buildMetricCards(data: DashboardSummary): MetricCard[] {
   const membersActiveRate =
     data.summary.total_members > 0 ? (data.summary.active_members / data.summary.total_members) * 100 : 0;
@@ -134,9 +122,6 @@ function buildMetricCards(data: DashboardSummary): MetricCard[] {
         : data.financial.pending_dues === null
           ? 46
           : (data.financial.monthly_collection / Math.max(data.financial.pending_dues + data.financial.monthly_collection, 1)) * 100;
-  const alertsHealth =
-    data.notifications.unread === null ? 0 : data.notifications.unread === 0 ? 100 : Math.max(12, 100 - data.notifications.unread * 14);
-
   return [
     {
       title: "Total Members",
@@ -209,16 +194,6 @@ function buildMetricCards(data: DashboardSummary): MetricCard[] {
       icon: summaryIcons.monthlyCollection,
       href: "/billing",
       accent: CARD_ACCENTS[5],
-    },
-    {
-      title: "Unread Alerts",
-      value: formatCount(data.notifications.unread),
-      subtitle: data.notifications.unread === null ? "Notification summary unavailable." : "Signals waiting for operator review.",
-      meta: data.notifications.unread === 0 ? "Inbox clear" : "Review recommended",
-      progress: clampPercent(alertsHealth),
-      icon: summaryIcons.alerts,
-      href: "/notifications",
-      accent: CARD_ACCENTS[6],
     },
   ];
 }
@@ -309,11 +284,6 @@ export default function DashboardPage() {
   const metricCards = buildMetricCards(data);
   const pulseItems = buildPulseItems(data);
   const latestEvent = data.recent_activities[0];
-  const readinessItems = Object.entries(data.integrations).map(([name, status]) => ({
-    name: formatStatusLabel(name),
-    status: formatStatusLabel(status),
-    tone: getStatusTone(status),
-  }));
   const attentionItems = [
     {
       title: "Pending dues",
@@ -329,19 +299,6 @@ export default function DashboardPage() {
       accent: CARD_ACCENTS[4],
     },
     {
-      title: "Unread alerts",
-      value: formatCount(data.notifications.unread),
-      detail:
-        data.notifications.unread === null
-          ? "Notifications feed unavailable for this workspace."
-          : data.notifications.unread === 0
-            ? "Inbox is clear and no fresh alerts are waiting."
-            : "Review announcement, billing, or room alerts still in queue.",
-      href: "/notifications",
-      icon: BellRing,
-      accent: CARD_ACCENTS[6],
-    },
-    {
       title: "Attendance exceptions",
       value: formatCount(data.attendance.absent_today),
       detail:
@@ -355,16 +312,47 @@ export default function DashboardPage() {
       accent: CARD_ACCENTS[3],
     },
   ];
-
+  const spotlightStats: SpotlightStat[] = [
+    {
+      label: "Active residents",
+      value: formatCount(data.summary.active_members),
+      detail: "Residents currently in active standing across the live workspace.",
+      accent: CARD_ACCENTS[0],
+    },
+    {
+      label: "Available beds",
+      value: formatCount(data.summary.available_beds),
+      detail: `${data.summary.total_beds.toLocaleString("en-US")} beds currently in circulation.`,
+      accent: CARD_ACCENTS[3],
+    },
+    {
+      label: "Occupancy rate",
+      value: `${clampPercent(data.summary.occupancy_rate)}%`,
+      detail: `${data.summary.occupied_beds.toLocaleString("en-US")} beds assigned right now.`,
+      accent: CARD_ACCENTS[2],
+    },
+    {
+      label: "Billing position",
+      value: formatCurrency(data.financial.pending_dues),
+      detail:
+        data.financial.pending_dues === null
+          ? "Billing insight is currently unavailable."
+          : data.financial.pending_dues === 0
+            ? "No open receivables need attention."
+            : "Outstanding balances need follow-up.",
+      accent: CARD_ACCENTS[4],
+    },
+  ];
   return (
-    <section className="space-y-5 pb-2">
-      <div className="dashboard-fade-up grid gap-4 xl:grid-cols-[minmax(0,1.42fr)_minmax(300px,0.9fr)]">
-        <div className="panel panel-soft panel-elevated relative overflow-hidden px-5 py-5 md:px-6 md:py-6">
+    <section className="space-y-4 pb-3 md:space-y-5">
+      <div className="dashboard-fade-up grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_344px]">
+        <section className="panel panel-soft panel-elevated relative h-full overflow-hidden p-5 md:p-6">
           <div className="absolute inset-0 opacity-95" style={{ background: "var(--dashboard-hero-overlay)" }} />
-          <div className="absolute right-[-3rem] top-[-1.5rem] h-32 w-32 rounded-full bg-[rgba(255,255,255,0.06)] blur-3xl" />
+          <div className="absolute right-[-4rem] top-[-2rem] h-40 w-40 rounded-full bg-[rgba(255,255,255,0.06)] blur-3xl" />
+          <div className="absolute left-[-3rem] bottom-[-4rem] h-36 w-36 rounded-full bg-[rgba(31,165,158,0.14)] blur-3xl" />
 
-          <div className="relative xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(230px,0.72fr)] xl:items-end xl:gap-5">
-            <div>
+          <div className="relative z-[1] grid gap-4 xl:h-full xl:grid-cols-[minmax(0,1.14fr)_minmax(290px,0.86fr)]">
+            <div className="flex h-full flex-col gap-5">
               <div className="flex flex-wrap gap-2">
                 <span className="dashboard-chip">
                   <Sparkles className="h-3 w-3" />
@@ -377,33 +365,36 @@ export default function DashboardPage() {
                 {latestEvent ? <span className="dashboard-chip">Latest event {formatTimestamp(latestEvent.timestamp)}</span> : null}
               </div>
 
-              <h1 className="mt-5 max-w-[34rem] text-[2rem] font-semibold leading-tight tracking-[-0.05em] text-[var(--color-text-strong)] sm:text-[2.65rem]">
-                Operations Dashboard
-              </h1>
-              <p className="mt-3 max-w-[32rem] text-sm leading-6 text-[var(--color-text-soft)] sm:text-[15px]">
-                Run residents, rooms, collections, attendance, and notifications from a cleaner command center built for modern hostel management.
-              </p>
+              <div className="space-y-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.34em] text-[var(--color-text-muted)]">
+                  Operations Command Center
+                </p>
+                <h1 className="max-w-[34rem] text-[2rem] font-semibold leading-tight tracking-[-0.05em] text-[var(--color-text-strong)] sm:text-[2.7rem]">
+                  Operations Dashboard
+                </h1>
+                <p className="max-w-[34rem] text-sm leading-6 text-[var(--color-text-soft)] sm:text-[15px]">
+                  Stay on top of residents, rooms, collections, attendance, and daily execution from one cleaner, better-aligned control surface.
+                </p>
+              </div>
 
-              <div className="mt-5 flex flex-wrap gap-2.5">
+              <div className="mt-auto flex flex-wrap gap-2.5">
                 <Link
                   href="/members"
-                  className="inline-flex items-center gap-1.5 rounded-[1rem] border border-transparent bg-[var(--nav-active-bg)] px-3 py-2 text-sm font-semibold text-white shadow-[0_18px_34px_rgba(20,64,172,0.22)] transition hover:translate-y-[-1px]"
+                  className="dashboard-cta dashboard-cta-primary"
                 >
                   Manage residents
                   <ArrowRight className="h-3 w-3" />
                 </Link>
                 <Link
                   href="/rooms"
-                  className="inline-flex items-center gap-1.5 rounded-[1rem] border px-3 py-2 text-sm font-semibold text-[var(--color-text-strong)] transition hover:border-[var(--color-border-strong)]"
-                  style={{ borderColor: "var(--color-border)" }}
+                  className="dashboard-cta dashboard-cta-secondary"
                 >
                   Review room inventory
                   <ArrowRight className="h-3 w-3" />
                 </Link>
                 <Link
                   href="/billing"
-                  className="inline-flex items-center gap-1.5 rounded-[1rem] border px-3 py-2 text-sm font-semibold text-[var(--color-text-strong)] transition hover:border-[var(--color-border-strong)]"
-                  style={{ borderColor: "var(--color-border)" }}
+                  className="dashboard-cta dashboard-cta-secondary"
                 >
                   Open billing console
                   <ArrowRight className="h-3 w-3" />
@@ -411,100 +402,70 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="mt-5 grid gap-2.5 sm:grid-cols-3 xl:mt-0 xl:grid-cols-1">
-              <div className="rounded-[22px] border bg-white/5 px-3.5 py-3.5 backdrop-blur-sm" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
-                <p className="text-xs uppercase tracking-[0.24em] text-[var(--color-text-muted)]">Active Residents</p>
-                <p className="mt-2.5 text-[1.7rem] font-semibold tracking-[-0.04em] text-[var(--color-text-strong)]">
-                  {formatCount(data.summary.active_members)}
-                </p>
-                <p className="mt-1 text-sm leading-5 text-[var(--color-text-soft)]">Current residents in active standing.</p>
-              </div>
-
-              <div className="rounded-[22px] border bg-white/5 px-3.5 py-3.5 backdrop-blur-sm" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
-                <p className="text-xs uppercase tracking-[0.24em] text-[var(--color-text-muted)]">Occupancy</p>
-                <p className="mt-2.5 text-[1.7rem] font-semibold tracking-[-0.04em] text-[var(--color-text-strong)]">
-                  {clampPercent(data.summary.occupancy_rate)}%
-                </p>
-                <p className="mt-1 text-sm leading-5 text-[var(--color-text-soft)]">A live reading of bed utilization.</p>
-              </div>
-
-              <div className="rounded-[22px] border bg-white/5 px-3.5 py-3.5 backdrop-blur-sm" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
-                <p className="text-xs uppercase tracking-[0.24em] text-[var(--color-text-muted)]">Pending Dues</p>
-                <p className="mt-2.5 text-[1.7rem] font-semibold tracking-[-0.04em] text-[var(--color-text-strong)]">
-                  {formatCurrency(data.financial.pending_dues)}
-                </p>
-                <p className="mt-1 text-sm leading-5 text-[var(--color-text-soft)]">Financial exposure currently waiting for follow-up.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="panel panel-soft panel-elevated relative overflow-hidden p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-text-muted)]">Operational Pulse</p>
-              <h2 className="mt-2 text-[1.7rem] font-semibold tracking-[-0.04em] text-[var(--color-text-strong)]">Today at a glance</h2>
-            </div>
-            <span className="dashboard-chip">
-              <ShieldCheck className="h-[0.7rem] w-[0.7rem]" />
-              Live status
-            </span>
-          </div>
-
-          <div className="mt-5 space-y-2.5">
-            {pulseItems.map((item) => (
-              <article
-                key={item.title}
-                className="rounded-[22px] border bg-[rgba(255,255,255,0.04)] p-3.5"
-                style={{ borderColor: "var(--color-border)" }}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium text-[var(--color-text-soft)]">{item.title}</p>
-                    <p className="mt-2 text-[1.8rem] font-semibold tracking-[-0.04em] text-[var(--color-text-strong)]">{item.value}</p>
-                    <p className="mt-1 text-sm leading-5 text-[var(--color-text-muted)]">{item.helper}</p>
-                  </div>
-                  <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.accent.solid }} />
-                </div>
-                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[rgba(255,255,255,0.06)]">
-                  <div
-                    className="h-full rounded-full"
-                    style={{ width: `${item.progress}%`, background: `linear-gradient(90deg, ${item.accent.solid}, ${item.accent.soft})` }}
-                  />
-                </div>
-              </article>
-            ))}
-          </div>
-
-          <div className="mt-5 rounded-[22px] border bg-[rgba(255,255,255,0.03)] p-3.5" style={{ borderColor: "var(--color-border)" }}>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-[var(--color-text-strong)]">Module readiness</p>
-                <p className="text-xs text-[var(--color-text-muted)]">Operational feeds and module health</p>
-              </div>
-              <BadgeCheck className="h-3 w-3 text-[var(--status-success)]" />
-            </div>
-
-            <div className="mt-3.5 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
-              {readinessItems.map((item) => (
-                <div
-                  key={item.name}
-                  className="flex items-center justify-between rounded-[18px] border px-3 py-2 text-sm"
-                  style={{ borderColor: "var(--color-border)" }}
+            <div className="grid auto-rows-fr gap-2.5 sm:grid-cols-2">
+              {spotlightStats.map((item) => (
+                <article
+                  key={item.label}
+                  className="dashboard-stat-card h-full rounded-[22px] px-4 py-3.5"
                 >
-                  <span className="text-[var(--color-text-soft)]">{item.name}</span>
-                  <span className="inline-flex items-center gap-2 text-xs font-medium" style={{ color: item.tone.color }}>
-                    <span className="status-dot" style={{ backgroundColor: item.tone.color, color: item.tone.color }} />
-                    {item.status}
-                  </span>
-                </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--color-text-muted)]">{item.label}</p>
+                      <p className="mt-3 text-[1.75rem] font-semibold tracking-[-0.05em] text-[var(--color-text-strong)]">{item.value}</p>
+                    </div>
+                    <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.accent.solid }} />
+                  </div>
+                  <p className="mt-2.5 text-sm leading-5 text-[var(--color-text-soft)]">{item.detail}</p>
+                </article>
               ))}
             </div>
           </div>
-        </div>
+        </section>
+
+        <aside className="panel panel-soft panel-elevated relative h-full overflow-hidden p-4 md:p-5">
+          <div className="absolute inset-0 opacity-70" style={{ background: "radial-gradient(circle at 100% 0%, rgba(36, 93, 244, 0.16), transparent 40%)" }} />
+          <div className="relative z-[1]">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-text-muted)]">Operational Pulse</p>
+                <h2 className="mt-2 text-[1.75rem] font-semibold tracking-[-0.04em] text-[var(--color-text-strong)]">Today at a glance</h2>
+                <p className="mt-2 text-sm leading-5 text-[var(--color-text-soft)]">
+                  Occupancy, attendance, collections, and daily activity in one quick read.
+                </p>
+              </div>
+              <span className="dashboard-chip">
+                <ShieldCheck className="h-[0.7rem] w-[0.7rem]" />
+                Live status
+              </span>
+            </div>
+
+            <div className="mt-4 grid auto-rows-fr gap-2.5 sm:grid-cols-2">
+              {pulseItems.map((item) => (
+                <article
+                  key={item.title}
+                  className="rounded-[20px] border bg-[rgba(255,255,255,0.04)] p-3.5"
+                  style={{ borderColor: "var(--color-border)" }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-sm font-medium text-[var(--color-text-soft)]">{item.title}</p>
+                    <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.accent.solid }} />
+                  </div>
+                  <p className="mt-2 text-[1.45rem] font-semibold tracking-[-0.04em] text-[var(--color-text-strong)]">{item.value}</p>
+                  <p className="mt-1 min-h-[2.25rem] text-xs leading-5 text-[var(--color-text-muted)]">{item.helper}</p>
+                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[rgba(255,255,255,0.06)]">
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${item.progress}%`, background: `linear-gradient(90deg, ${item.accent.solid}, ${item.accent.soft})` }}
+                    />
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </aside>
       </div>
 
-      <div className="dashboard-fade-up grid gap-3.5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      <div className="dashboard-fade-up grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
         {metricCards.map((card) => {
           const Icon = card.icon;
 
@@ -512,46 +473,48 @@ export default function DashboardPage() {
             <Link
               key={card.title}
               href={card.href}
-              className="panel panel-soft panel-interactive group relative overflow-hidden p-4"
+              className="panel panel-soft panel-interactive group relative h-full overflow-hidden p-4"
             >
               <div
                 className="absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
                 style={{ background: `radial-gradient(circle at 86% 18%, ${card.accent.surface} 0%, transparent 48%)` }}
               />
 
-              <div className="relative">
+              <div className="relative flex h-full flex-col">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-sm font-medium text-[var(--color-text-soft)]">{card.title}</p>
-                    <p className="mt-2.5 text-[1.75rem] font-semibold tracking-[-0.05em] text-[var(--color-text-strong)]">{card.value}</p>
+                    <p className="mt-2.5 text-[1.8rem] font-semibold tracking-[-0.05em] text-[var(--color-text-strong)]">{card.value}</p>
                   </div>
                   <span
-                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[0.85rem] border"
+                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[0.95rem] border"
                     style={{
                       borderColor: card.accent.surface,
                       background: `linear-gradient(180deg, ${card.accent.surface}, rgba(255,255,255,0.02))`,
                       color: card.accent.solid,
                     }}
                   >
-                    <Icon className="h-3 w-3" />
+                    <Icon className="h-3.5 w-3.5" />
                   </span>
                 </div>
 
                 <p className="mt-2 text-sm leading-5 text-[var(--color-text-muted)]">{card.subtitle}</p>
 
-                <div className="mt-4 flex items-center justify-between gap-3 text-xs">
-                  <span className="text-[var(--color-text-muted)]">{card.meta}</span>
-                  <span className="inline-flex items-center gap-1 font-semibold" style={{ color: card.accent.solid }}>
-                    Open
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </span>
-                </div>
+                <div className="mt-auto pt-4">
+                  <div className="flex items-center justify-between gap-3 text-xs">
+                    <span className="text-[var(--color-text-muted)]">{card.meta}</span>
+                    <span className="inline-flex items-center gap-1 font-semibold" style={{ color: card.accent.solid }}>
+                      Open
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </span>
+                  </div>
 
-                <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[rgba(255,255,255,0.06)]">
-                  <div
-                    className="h-full rounded-full"
-                    style={{ width: `${card.progress}%`, background: `linear-gradient(90deg, ${card.accent.solid}, ${card.accent.soft})` }}
-                  />
+                  <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[rgba(255,255,255,0.06)]">
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${card.progress}%`, background: `linear-gradient(90deg, ${card.accent.solid}, ${card.accent.soft})` }}
+                    />
+                  </div>
                 </div>
               </div>
             </Link>
@@ -559,8 +522,8 @@ export default function DashboardPage() {
         })}
       </div>
 
-      <div className="dashboard-fade-up grid gap-4 xl:grid-cols-[minmax(0,1.12fr)_minmax(300px,0.88fr)]">
-        <section className="panel panel-soft p-4 md:p-5">
+      <div className="dashboard-fade-up grid gap-4 xl:grid-cols-[minmax(0,1.22fr)_360px] xl:items-start">
+        <section className="panel panel-soft p-4 md:p-5 xl:self-start">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-text-muted)]">Recent Activity</p>
@@ -574,12 +537,12 @@ export default function DashboardPage() {
 
           <div className="mt-4 space-y-2.5">
             {data.recent_activities.length === 0 ? (
-              <div
+              <article
                 className="rounded-[22px] border bg-[rgba(255,255,255,0.04)] px-3.5 py-3.5 text-sm text-[var(--color-text-soft)]"
                 style={{ borderColor: "var(--color-border)" }}
               >
                 No recent activity is available yet.
-              </div>
+              </article>
             ) : (
               data.recent_activities.slice(0, 5).map((activity, index) => (
                 <article
@@ -620,7 +583,7 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <div className="space-y-4">
+        <aside className="space-y-4 xl:self-start">
           <section className="panel panel-soft p-4">
             <div className="flex items-center gap-3">
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-[0.9rem] border border-[rgba(251,113,133,0.18)] bg-[rgba(251,113,133,0.12)] text-[var(--status-danger)]">
@@ -672,45 +635,7 @@ export default function DashboardPage() {
             </div>
           </section>
 
-          <section className="panel panel-soft p-4">
-            <div className="flex items-center gap-3">
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-[0.9rem] border border-[rgba(36,93,244,0.18)] bg-[rgba(36,93,244,0.12)] text-[#245df4]">
-                <Sparkles className="h-3 w-3" />
-              </span>
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-text-muted)]">Quick Routes</p>
-                <h2 className="mt-1 text-[1.3rem] font-semibold tracking-[-0.03em] text-[var(--color-text-strong)]">Move faster</h2>
-              </div>
-            </div>
-
-            <div className="mt-4 grid gap-2.5">
-              <Link
-                href="/members"
-                className="flex items-center justify-between rounded-[20px] border px-4 py-2.5 text-sm font-semibold text-[var(--color-text-strong)] transition hover:border-[var(--color-border-strong)]"
-                style={{ borderColor: "var(--color-border)" }}
-              >
-                Member directory
-                <ArrowRight className="h-4 w-4 text-[var(--color-text-muted)]" />
-              </Link>
-              <Link
-                href="/rooms"
-                className="flex items-center justify-between rounded-[20px] border px-4 py-2.5 text-sm font-semibold text-[var(--color-text-strong)] transition hover:border-[var(--color-border-strong)]"
-                style={{ borderColor: "var(--color-border)" }}
-              >
-                Room inventory
-                <ArrowRight className="h-4 w-4 text-[var(--color-text-muted)]" />
-              </Link>
-              <Link
-                href="/billing"
-                className="flex items-center justify-between rounded-[20px] border px-4 py-2.5 text-sm font-semibold text-[var(--color-text-strong)] transition hover:border-[var(--color-border-strong)]"
-                style={{ borderColor: "var(--color-border)" }}
-              >
-                Billing center
-                <ArrowRight className="h-4 w-4 text-[var(--color-text-muted)]" />
-              </Link>
-            </div>
-          </section>
-        </div>
+        </aside>
       </div>
     </section>
   );

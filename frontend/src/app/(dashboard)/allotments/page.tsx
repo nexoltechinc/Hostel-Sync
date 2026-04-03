@@ -2,7 +2,6 @@
 
 import {
   ArrowUpRight,
-  BedDouble,
   BedSingle,
   Filter,
   RefreshCcw,

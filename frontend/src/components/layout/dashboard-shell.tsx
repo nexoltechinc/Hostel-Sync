@@ -3,16 +3,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
 import {
-  Bell,
   LoaderCircle,
   LogOut,
   Menu,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Search,
-  ShieldCheck,
-  UserRound,
-  X,
+  SlidersHorizontal,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -37,28 +31,6 @@ const NAV_ITEMS = [
   { href: "/reports", label: "Reports", icon: navIcons.reports },
   { href: "/settings", label: "Settings", icon: navIcons.settings },
 ];
-
-function formatRole(role: string) {
-  return role
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
-function getInitials(name: string, fallback: string) {
-  const source = name.trim() || fallback.trim();
-  const parts = source.split(/\s+/).filter(Boolean);
-
-  if (parts.length === 0) {
-    return "HS";
-  }
-
-  if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase();
-  }
-
-  return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
-}
 
 export function DashboardShell({ children }: DashboardShellProps) {
   const router = useRouter();
@@ -112,10 +84,6 @@ export function DashboardShell({ children }: DashboardShellProps) {
     return null;
   }
 
-  const displayName = data.user.first_name?.trim() || data.user.username;
-  const roleLabel = formatRole(data.user.role);
-  const initials = getInitials(data.user.first_name || data.user.username, data.user.username);
-
   return (
     <div
       className={clsx(
@@ -146,74 +114,37 @@ export function DashboardShell({ children }: DashboardShellProps) {
         style={{ borderColor: "var(--color-border)" }}
       >
         <div className="flex h-full flex-col">
-          <div className="border-b p-3.5 sm:p-4" style={{ borderColor: "var(--color-border)" }}>
-            <div className="panel panel-soft panel-elevated relative overflow-hidden p-3.5">
-              <div className="absolute inset-0 opacity-90" style={{ background: "var(--dashboard-hero-overlay)" }} />
+          <div className="border-b px-3 pb-3 pt-3 sm:px-4" style={{ borderColor: "var(--color-border)" }}>
+            <div className={clsx("flex items-center", sidebarCollapsed ? "lg:justify-center" : "justify-end")}>
+              <button
+                type="button"
+                className="hidden h-9 w-9 items-center justify-center rounded-[1rem] border bg-white/5 text-[var(--color-text-soft)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-text-strong)] lg:inline-flex"
+                style={{ borderColor: "var(--color-border)" }}
+                onClick={() => setSidebarCollapsed((value) => !value)}
+                aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+              </button>
 
-              <div className="relative">
-                <div className="flex items-start justify-between gap-3">
-                  <div className={clsx("min-w-0", sidebarCollapsed && "lg:hidden")}>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--color-text-muted)]">
-                      Hostel Sync
-                    </p>
-                    <h1 className="mt-2 text-base font-semibold text-[var(--color-text-strong)]">Operations Hub</h1>
-                    <p className="mt-1 text-[13px] leading-5 text-[var(--color-text-soft)]">
-                      Residents, rooms, collections, and alerts in one refined workspace.
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className="hidden h-8 w-8 items-center justify-center rounded-[0.85rem] border bg-white/5 text-[var(--color-text-soft)] transition hover:text-[var(--color-text-strong)] lg:inline-flex"
-                      style={{ borderColor: "var(--color-border)" }}
-                      onClick={() => setSidebarCollapsed((value) => !value)}
-                      aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                      title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                    >
-                      {sidebarCollapsed ? <PanelLeftOpen className="h-2.5 w-2.5" /> : <PanelLeftClose className="h-2.5 w-2.5" />}
-                    </button>
-
-                    <button
-                      type="button"
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-[0.85rem] border bg-white/5 text-[var(--color-text-soft)] transition hover:text-[var(--color-text-strong)] lg:hidden"
-                      style={{ borderColor: "var(--color-border)" }}
-                      onClick={closeMobileMenu}
-                      aria-label="Close navigation menu"
-                    >
-                      <X className="h-2.5 w-2.5" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className={clsx("mt-4 flex items-center gap-2.5", sidebarCollapsed && "lg:mt-2 lg:justify-center")}>
-                  <div
-                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[0.85rem] border bg-white/10 text-[11px] font-semibold text-white shadow-[0_16px_28px_rgba(4,10,23,0.24)]"
-                    style={{ borderColor: "rgba(255,255,255,0.1)" }}
-                  >
-                    {initials}
-                  </div>
-
-                  <div className={clsx("min-w-0", sidebarCollapsed && "lg:hidden")}>
-                    <p className="truncate text-[15px] font-semibold text-[var(--color-text-strong)]">{data.user.username}</p>
-                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                      <span className="dashboard-chip !px-2 !py-1 text-[9px] uppercase tracking-[0.2em]">{roleLabel}</span>
-                      <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--color-text-muted)]">
-                        <ShieldCheck className="h-3 w-3" />
-                        Active session
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <button
+                type="button"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-[1rem] border bg-white/5 text-[var(--color-text-soft)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-text-strong)] lg:hidden"
+                style={{ borderColor: "var(--color-border)" }}
+                onClick={closeMobileMenu}
+                aria-label="Close navigation menu"
+                title="Close navigation menu"
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+              </button>
             </div>
           </div>
 
-          <div className={clsx("px-5 pb-2 pt-5 text-[11px] font-semibold uppercase tracking-[0.34em] text-[var(--color-text-muted)]", sidebarCollapsed && "lg:px-0 lg:text-center")}>
+          <div className={clsx("px-5 pb-2 pt-3.5 text-[11px] font-semibold uppercase tracking-[0.34em] text-[var(--color-text-muted)]", sidebarCollapsed && "lg:px-0 lg:text-center")}>
             {sidebarCollapsed ? "Nav" : "Workspace"}
           </div>
 
-          <nav className="flex-1 space-y-1.5 overflow-y-auto px-3 pb-4">
+          <nav className="flex-1 space-y-1.5 overflow-y-auto px-3 pb-3">
             {NAV_ITEMS.map((item) => {
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
               const Icon = item.icon;
@@ -262,13 +193,10 @@ export function DashboardShell({ children }: DashboardShellProps) {
             })}
           </nav>
 
-          <div className="border-t px-3 pb-4 pt-3" style={{ borderColor: "var(--color-border)" }}>
-            <div className={clsx("panel panel-soft p-3", sidebarCollapsed && "lg:px-2.5")}>
-              <div className={clsx(sidebarCollapsed && "lg:hidden")}>
-                <p className="text-sm font-semibold text-[var(--color-text-strong)]">Secure workspace</p>
-                <p className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">
-                  Stay focused while Hostel Sync keeps operations, finance, and resident activity aligned.
-                </p>
+          <div className="border-t px-3 pb-3 pt-2.5" style={{ borderColor: "var(--color-border)" }}>
+            <div className={clsx("panel panel-soft p-2.5", sidebarCollapsed && "lg:px-2.5")}>
+              <div className={clsx("flex items-center justify-between gap-3", sidebarCollapsed && "lg:justify-center")}>
+                <ThemeToggle compact className="h-9 w-9 shrink-0 rounded-[0.95rem] bg-white/5 shadow-none" />
               </div>
 
               <button
@@ -277,7 +205,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
                 disabled={isPending}
                 title={sidebarCollapsed ? "Sign out" : undefined}
                 className={clsx(
-                  "mt-3 inline-flex rounded-2xl border bg-[var(--color-surface-strong)] text-sm font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--nav-hover-bg)] hover:text-[var(--color-text-strong)] disabled:cursor-not-allowed disabled:opacity-60",
+                  "mt-2.5 inline-flex rounded-2xl border bg-[var(--color-surface-strong)] text-sm font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--nav-hover-bg)] hover:text-[var(--color-text-strong)] disabled:cursor-not-allowed disabled:opacity-60",
                   sidebarCollapsed ? "w-full justify-center px-2 py-3" : "w-full items-center justify-center gap-2 px-4 py-3",
                 )}
                 style={{ borderColor: "var(--color-border-strong)" }}
@@ -291,105 +219,34 @@ export function DashboardShell({ children }: DashboardShellProps) {
       </aside>
 
       <div className="relative flex min-h-screen min-w-0 flex-col">
-        <header className="sticky top-0 z-30 px-3 pt-3 sm:px-4 md:px-5 lg:px-5 lg:pt-4">
+        <main className="relative flex-1 px-3 py-3 sm:px-4 md:px-5 lg:px-5 lg:py-5">
           <div className="mx-auto w-full max-w-7xl">
-            <div className="panel panel-soft flex items-center justify-between gap-3 px-4 py-2 md:px-5">
-              <div className="flex min-w-0 items-center gap-3">
-                <button
-                  type="button"
-                  onClick={openMobileMenu}
-                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[0.85rem] border bg-white/5 text-[var(--color-text-soft)] transition hover:text-[var(--color-text-strong)] lg:hidden"
-                  style={{ borderColor: "var(--color-border)" }}
-                  aria-label="Open navigation menu"
-                >
-                  <Menu className="h-2.5 w-2.5" />
-                </button>
+            <div className="mb-3 flex items-center justify-between gap-3 lg:hidden">
+              <button
+                type="button"
+                onClick={openMobileMenu}
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[0.95rem] border bg-white/5 text-[var(--color-text-soft)] transition hover:text-[var(--color-text-strong)]"
+                style={{ borderColor: "var(--color-border)" }}
+                aria-label="Open navigation menu"
+              >
+                <Menu className="h-2.5 w-2.5" />
+              </button>
 
-                <button
-                  type="button"
-                  onClick={() => setSidebarCollapsed((value) => !value)}
-                  className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-[0.85rem] border bg-white/5 text-[var(--color-text-soft)] transition hover:text-[var(--color-text-strong)] lg:inline-flex"
-                  style={{ borderColor: "var(--color-border)" }}
-                  aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                  title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                >
-                  {sidebarCollapsed ? <PanelLeftOpen className="h-2.5 w-2.5" /> : <PanelLeftClose className="h-2.5 w-2.5" />}
-                </button>
-
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate text-[11px] font-semibold uppercase tracking-[0.34em] text-[var(--color-text-muted)]">
-                      {currentNavItem.label}
-                    </p>
-                    <span className="dashboard-chip hidden sm:inline-flex">
-                      <span className="status-dot bg-[var(--status-success)] text-[var(--status-success)]" />
-                      Live workspace
-                    </span>
-                  </div>
-                  <p className="truncate text-lg font-semibold text-[var(--color-text-strong)] md:text-[1.2rem]">
-                    Welcome back, {displayName}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-end gap-2">
+                  <p className="truncate text-[11px] font-semibold uppercase tracking-[0.34em] text-[var(--color-text-muted)]">
+                    {currentNavItem.label}
                   </p>
-                  <p className="hidden truncate text-sm text-[var(--color-text-soft)] lg:block">
-                    Monitor occupancy, collections, and resident activity from one modern control center.
-                  </p>
+                  <span className="dashboard-chip">
+                    <span className="status-dot bg-[var(--status-success)] text-[var(--status-success)]" />
+                    Live workspace
+                  </span>
                 </div>
               </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className="hidden h-9 max-w-[16rem] items-center gap-2 rounded-[0.95rem] border bg-white/5 px-3 text-[12px] transition hover:border-[var(--color-border-strong)] md:inline-flex xl:max-w-[18rem]"
-                  style={{ borderColor: "var(--color-border)" }}
-                  aria-label="Search workspace"
-                  title="Search workspace"
-                >
-                  <Search className="h-2.5 w-2.5 text-[var(--color-text-muted)]" />
-                  <span className="truncate text-[var(--color-text-soft)]">Search residents, rooms, invoices</span>
-                </button>
-
-                <ThemeToggle compact className="h-8 w-8 rounded-[0.85rem] bg-white/5 shadow-none" />
-
-                <button
-                  type="button"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-[0.85rem] border bg-white/5 text-[var(--color-text-muted)] transition hover:text-[var(--color-text-strong)]"
-                  style={{ borderColor: "var(--color-border)" }}
-                  aria-label="Notifications"
-                >
-                  <Bell className="h-2.5 w-2.5" />
-                </button>
-
-                <button
-                  type="button"
-                  className="hidden items-center gap-2 rounded-[0.95rem] border bg-white/5 px-2 py-1.5 text-left transition hover:border-[var(--color-border-strong)] sm:inline-flex"
-                  style={{ borderColor: "var(--color-border)" }}
-                  aria-label="Profile"
-                  title="Profile"
-                >
-                  <span className="inline-flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-[0.8rem] border bg-white/10 text-[12px] font-semibold text-[var(--color-text-strong)]" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
-                    {initials}
-                  </span>
-                  <span className="hidden xl:block">
-                    <span className="block text-[14px] font-semibold text-[var(--color-text-strong)]">{data.user.username}</span>
-                    <span className="block text-[11px] text-[var(--color-text-muted)]">{roleLabel}</span>
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-[0.85rem] border bg-white/5 text-[var(--color-text-muted)] transition hover:text-[var(--color-text-strong)] sm:hidden"
-                  style={{ borderColor: "var(--color-border)" }}
-                  aria-label="Profile"
-                  title="Profile"
-                >
-                  <UserRound className="h-2.5 w-2.5" />
-                </button>
-              </div>
             </div>
-          </div>
-        </header>
 
-        <main className="relative flex-1 px-3 pb-5 pt-3 sm:px-4 md:px-5 lg:px-5 lg:pb-7">
-          <div className="mx-auto w-full max-w-7xl">{children}</div>
+            {children}
+          </div>
         </main>
       </div>
     </div>

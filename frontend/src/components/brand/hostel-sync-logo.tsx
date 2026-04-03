@@ -1,6 +1,7 @@
 "use client";
 
 import clsx from "clsx";
+import Image from "next/image";
 import { useState } from "react";
 
 type HostelSyncLogoProps = {
@@ -17,6 +18,11 @@ const SIZE_STYLES: Record<NonNullable<HostelSyncLogoProps["size"]>, string> = {
   lg: "h-16",
 };
 
+const LOGO_ASSETS = {
+  full: { src: "/brand/hostelsync-logo.png", width: 320, height: 96, fallback: "Hostel Sync" },
+  mark: { src: "/brand/hostelsync-icon.png", width: 72, height: 72, fallback: "HS" },
+} as const;
+
 export function HostelSyncLogo({
   variant = "full",
   size = "md",
@@ -25,15 +31,16 @@ export function HostelSyncLogo({
   fallbackClassName,
 }: HostelSyncLogoProps) {
   const [hasError, setHasError] = useState(false);
-  const src = variant === "mark" ? "/brand/hostelsync-icon.png" : "/brand/hostelsync-logo.png";
-  const fallbackText = variant === "mark" ? "HS" : "Hostel Sync";
+  const asset = LOGO_ASSETS[variant];
 
   return (
     <span className={clsx("inline-flex items-center", SIZE_STYLES[size], className)}>
       {!hasError ? (
-        <img
-          src={src}
+        <Image
+          src={asset.src}
           alt="Hostel Sync"
+          width={asset.width}
+          height={asset.height}
           className={clsx("h-full w-auto object-contain", imageClassName)}
           onError={() => setHasError(true)}
         />
@@ -44,7 +51,7 @@ export function HostelSyncLogo({
             fallbackClassName,
           )}
         >
-          {fallbackText}
+          {asset.fallback}
         </span>
       )}
     </span>

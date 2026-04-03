@@ -15,5 +15,9 @@ frontend/dev.err.log
 frontend/webpack-dev.log
 frontend/webpack-dev.err.log
 frontend/run-dev.cmd
+frontend/run.out.log
+frontend/run.err.log
+backend/run.out.log
+backend/run.err.log
 
 *.pyc
