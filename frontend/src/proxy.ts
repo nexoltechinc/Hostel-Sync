@@ -8,7 +8,6 @@ const DASHBOARD_PATHS = [
   "/rooms",
   "/allotments",
   "/billing",
-  "/attendance",
   "/reports",
   "/settings",
 ];

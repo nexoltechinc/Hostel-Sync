@@ -56,3 +56,21 @@ cmd /c npm run dev
 - React Hook Form + Zod login validation
 - TanStack Query session bootstrap
 - Backend RBAC policy map + DRF permission integration + transactional user service
+
+## Vercel deployment
+
+This repo can be deployed as one Vercel project with two services:
+
+- `frontend` at `/`
+- `backend` at `/api/v1`
+
+The root `vercel.json` is already configured for that layout.
+Before deploying:
+
+1. Import the repo into Vercel and set the project framework to `Services`.
+2. Keep the root directory as `./`.
+3. Add backend environment variables: `DJANGO_SECRET_KEY` and either `DATABASE_URL` or `POSTGRES_URL` for a hosted PostgreSQL database.
+4. Do not use SQLite on Vercel. The filesystem is not persistent.
+5. Do not set `DJANGO_API_BASE_URL` for a Services deployment unless you intentionally want the frontend to call an external API instead of the internal Vercel backend service.
+
+If your Vercel account does not yet have Services access, deploy the `frontend` to Vercel by itself and host the Django `backend` on a Python-friendly platform such as Railway, Render, or Fly.io.

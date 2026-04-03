@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Camera, FileUp, QrCode, Sparkles, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
@@ -95,6 +95,35 @@ export function MemberFormModal({
   onClose,
   onSubmit,
 }: MemberFormModalProps) {
+  if (!isOpen) {
+    return null;
+  }
+
+  const modalKey = `${mode}-${member?.id ?? "new"}-${showHostelField ? "multi-hostel" : "single-hostel"}`;
+
+  return (
+    <MemberFormModalInner
+      key={modalKey}
+      isOpen={isOpen}
+      mode={mode}
+      member={member}
+      showHostelField={showHostelField}
+      isSubmitting={isSubmitting}
+      onClose={onClose}
+      onSubmit={onSubmit}
+    />
+  );
+}
+
+function MemberFormModalInner({
+  isOpen,
+  mode,
+  member,
+  showHostelField,
+  isSubmitting,
+  onClose,
+  onSubmit,
+}: MemberFormModalProps) {
   const form = useForm<MemberFormValues>({
     resolver: zodResolver(memberSchema),
     defaultValues: defaultValues(member),
@@ -108,16 +137,6 @@ export function MemberFormModal({
   const [qrPreviewReady, setQrPreviewReady] = useState(false);
   const [photoName, setPhotoName] = useState<string | null>(null);
   const [documentNames, setDocumentNames] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (isOpen) {
-      form.reset(defaultValues(member));
-      setWelcomeEnabled(true);
-      setQrPreviewReady(false);
-      setPhotoName(null);
-      setDocumentNames([]);
-    }
-  }, [form, isOpen, member]);
 
   function onPhotoSelected(files: FileList | null) {
     const file = files?.[0];

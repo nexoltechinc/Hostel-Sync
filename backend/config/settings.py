@@ -1,15 +1,73 @@
 import os
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import parse_qsl, unquote, urlparse
 
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
+
+def env_list(name, default=""):
+    return [item.strip() for item in os.getenv(name, default).split(",") if item.strip()]
+
+
+def dedupe(values):
+    seen = set()
+    items = []
+    for value in values:
+        if value and value not in seen:
+            seen.add(value)
+            items.append(value)
+    return items
+
+
+def normalize_origin(value):
+    if not value:
+        return None
+
+    origin = value.strip().rstrip("/")
+    if not origin or origin.startswith("/"):
+        return None
+    if "://" in origin:
+        return origin
+    return f"https://{origin}"
+
+
+def parse_database_url(database_url):
+    parsed = urlparse(database_url)
+    if parsed.scheme not in {"postgres", "postgresql"}:
+        raise ValueError("DATABASE_URL must start with postgres:// or postgresql://")
+
+    config = {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": unquote(parsed.path.lstrip("/")),
+        "USER": unquote(parsed.username or ""),
+        "PASSWORD": unquote(parsed.password or ""),
+        "HOST": parsed.hostname or "",
+        "PORT": str(parsed.port or ""),
+    }
+
+    query_options = {key: value for key, value in parse_qsl(parsed.query)}
+    if query_options:
+        config["OPTIONS"] = query_options
+
+    return config
+
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret-change-me")
 DEBUG = os.getenv("DJANGO_DEBUG", "true").lower() == "true"
-ALLOWED_HOSTS = [host.strip() for host in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if host.strip()]
+ALLOWED_HOSTS = dedupe(
+    env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
+    + [
+        host
+        for host in (
+            os.getenv("VERCEL_URL"),
+            os.getenv("VERCEL_PROJECT_PRODUCTION_URL"),
+        )
+        if host
+    ]
+)
 
 
 INSTALLED_APPS = [
@@ -68,8 +126,13 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 
 database_engine = os.getenv("DATABASE_ENGINE", "postgresql").lower()
+database_url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
 
-if database_engine == "sqlite":
+if database_url:
+    DATABASES = {
+        "default": parse_database_url(database_url),
+    }
+elif database_engine == "sqlite":
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
@@ -118,8 +181,32 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
 
-CORS_ALLOWED_ORIGINS = [origin.strip() for origin in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",") if origin.strip()]
-CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in os.getenv("CSRF_TRUSTED_ORIGINS", "http://localhost:3000").split(",") if origin.strip()]
+CORS_ALLOWED_ORIGINS = dedupe(
+    env_list("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
+    + [
+        origin
+        for origin in (
+            normalize_origin(os.getenv("FRONTEND_URL")),
+            normalize_origin(os.getenv("VERCEL_URL")),
+            normalize_origin(os.getenv("VERCEL_PROJECT_PRODUCTION_URL")),
+        )
+        if origin
+    ]
+)
+CSRF_TRUSTED_ORIGINS = dedupe(
+    env_list("CSRF_TRUSTED_ORIGINS", "http://localhost:3000")
+    + [
+        origin
+        for origin in (
+            normalize_origin(os.getenv("FRONTEND_URL")),
+            normalize_origin(os.getenv("VERCEL_URL")),
+            normalize_origin(os.getenv("VERCEL_PROJECT_PRODUCTION_URL")),
+        )
+        if origin
+    ]
+)
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (

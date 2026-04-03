@@ -1,0 +1,22 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "experimentalServices": {
+    "frontend": {
+      "entrypoint": "frontend",
+      "routePrefix": "/",
+      "framework": "nextjs"
+    },
+    "backend": {
+      "entrypoint": "backend",
+      "routePrefix": "/api/v1",
+      "excludeFiles": [
+        "backend/.venv/**",
+        "backend/db.sqlite3",
+        "backend/dev.log",
+        "backend/dev.err.log",
+        "backend/**/__pycache__/**",
+        "backend/**/*.pyc"
+      ]
+    }
+  }
+}

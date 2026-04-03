@@ -1,4 +1,5 @@
-export const DJANGO_API_BASE_URL = process.env.DJANGO_API_BASE_URL ?? "http://127.0.0.1:8000/api/v1";
+export const DJANGO_API_BASE_URL =
+  process.env.BACKEND_URL ?? process.env.DJANGO_API_BASE_URL ?? "http://127.0.0.1:8000/api/v1";
 
 type BackendErrorPayload = {
   detail?: string;
