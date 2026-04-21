@@ -63,6 +63,12 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
     def validate(self, attrs):
+        username = attrs.get(self.username_field)
+        if isinstance(username, str):
+            canonical_user = User.objects.filter(username__iexact=username).only("username").first()
+            if canonical_user:
+                attrs[self.username_field] = canonical_user.username
+
         data = super().validate(attrs)
         data["user"] = UserReadSerializer(self.user).data
         return data
