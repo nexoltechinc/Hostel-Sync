@@ -88,8 +88,7 @@ function InventoryLoadingSkeleton() {
           className="rooms-animate-rise relative min-h-[220px] overflow-hidden rounded-[24px] border"
           style={{
             animationDelay: `${index * 55}ms`,
-            borderColor: "rgba(133, 160, 188, 0.2)",
-            background: "linear-gradient(180deg, rgba(16,24,40,0.82) 0%, rgba(12,19,33,0.86) 100%)",
+            borderColor: "var(--color-border)",
           }}
         >
           <div className="rooms-skeleton absolute inset-0" />
@@ -516,9 +515,6 @@ export default function RoomsPage() {
                   className="rooms-card rooms-animate-rise relative overflow-hidden rounded-[22px] border p-3 md:p-4"
                   style={{
                     animationDelay: `${index * 45}ms`,
-                    borderColor: "rgba(133, 160, 188, 0.22)",
-                    background:
-                      "linear-gradient(180deg, rgba(19, 30, 48, 0.78) 0%, rgba(12, 20, 34, 0.9) 100%), radial-gradient(120% 120% at 100% 0%, rgba(31, 165, 158, 0.2) 0%, transparent 55%)",
                   }}
                 >
                   <div className="pointer-events-none absolute inset-0 opacity-30">
@@ -529,7 +525,7 @@ export default function RoomsPage() {
                     <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
                       <div className="space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <Link href={`/rooms/${room.id}`} className="text-base font-semibold tracking-tight text-slate-100 hover:text-cyan-200">
+                          <Link href={`/rooms/${room.id}`} className="text-base font-semibold tracking-tight text-slate-100 hover:text-[var(--color-brand-600)]">
                             {room.room_code}
                           </Link>
                           <span className="rooms-chip">{roomTypeLabel(room.room_type)}</span>

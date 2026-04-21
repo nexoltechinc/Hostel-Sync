@@ -88,7 +88,7 @@ export function RoomFormModal({ isOpen, mode, room, showHostelField, isSubmittin
   }
 
   return (
-    <div className="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-sm sm:grid sm:place-items-center sm:p-4" onClick={onClose}>
+    <div className="app-modal-backdrop fixed inset-0 z-40 backdrop-blur-sm sm:grid sm:place-items-center sm:p-4" onClick={onClose}>
       <div
         className="members-modal-enter panel panel-elevated flex h-[100dvh] w-full flex-col rounded-none border-0 sm:h-auto sm:max-h-[95vh] sm:max-w-4xl sm:rounded-[1.75rem] sm:border"
         onClick={(event) => event.stopPropagation()}
@@ -100,19 +100,19 @@ export function RoomFormModal({ isOpen, mode, room, showHostelField, isSubmittin
                 <Sparkles className="h-3.5 w-3.5" />
                 Room onboarding
               </span>
-              <h2 className="mt-2 text-lg font-semibold text-slate-900">{mode === "create" ? "Create Room" : "Edit Room"}</h2>
-              <p className="text-sm text-slate-600">Maintain room metadata and bed structure configuration from one flow.</p>
+              <h2 className="mt-2 text-lg font-semibold text-[var(--color-text-strong)]">{mode === "create" ? "Create Room" : "Edit Room"}</h2>
+              <p className="text-sm text-[var(--color-text-soft)]">Maintain room metadata and bed structure configuration from one flow.</p>
             </div>
             <button
               type="button"
               onClick={onClose}
               aria-label="Close room form"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 text-slate-600 transition hover:bg-slate-100"
+              className="app-modal-close"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
-          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/8">
+          <div className="app-progress-track mt-3 h-1.5 overflow-hidden rounded-full">
             <div className="members-progress-fill h-full rounded-full bg-[linear-gradient(90deg,#245df4,#1db5a8)]" />
           </div>
         </div>
@@ -141,7 +141,7 @@ export function RoomFormModal({ isOpen, mode, room, showHostelField, isSubmittin
           <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-4 md:px-6">
             <div className="grid gap-3 md:grid-cols-2">
               <article className="members-upload-card">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[#8fb2ff]">
+                <span className="app-icon-surface inline-flex h-10 w-10 items-center justify-center rounded-xl border text-[#4f7fff]">
                   <Building2 className="h-5 w-5" />
                 </span>
                 <span className="mt-3 block text-sm font-semibold text-[var(--color-text-strong)]">Room Profile</span>
@@ -149,7 +149,7 @@ export function RoomFormModal({ isOpen, mode, room, showHostelField, isSubmittin
               </article>
 
               <article className="members-upload-card">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[#77d0be]">
+                <span className="app-icon-surface inline-flex h-10 w-10 items-center justify-center rounded-xl border text-[#159f83]">
                   <BedSingle className="h-5 w-5" />
                 </span>
                 <span className="mt-3 block text-sm font-semibold text-[var(--color-text-strong)]">Bed Structure</span>
@@ -253,7 +253,7 @@ export function RoomFormModal({ isOpen, mode, room, showHostelField, isSubmittin
                 </p>
               )}
 
-              <section className="md:col-span-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <section className="app-subtle-card md:col-span-2 rounded-2xl p-4">
                 <input type="checkbox" className="sr-only" {...form.register("is_active")} />
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -265,9 +265,8 @@ export function RoomFormModal({ isOpen, mode, room, showHostelField, isSubmittin
                   <button
                     type="button"
                     onClick={() => form.setValue("is_active", !isRoomActive, { shouldDirty: true })}
-                    className={`inline-flex h-7 w-12 items-center rounded-full border px-1 transition ${
-                      isRoomActive ? "border-[#4f7fff] bg-[#245df4]" : "border-white/20 bg-white/8"
-                    }`}
+                    data-checked={Boolean(isRoomActive)}
+                    className="app-toggle inline-flex h-7 w-12 items-center rounded-full border px-1 transition"
                     aria-pressed={Boolean(isRoomActive)}
                     aria-label="Toggle room availability"
                   >
@@ -282,7 +281,7 @@ export function RoomFormModal({ isOpen, mode, room, showHostelField, isSubmittin
             <button
               type="button"
               onClick={onClose}
-              className="w-full rounded-xl border border-white/18 bg-white/[0.04] px-4 py-3 text-sm font-medium text-[var(--color-text-soft)] transition hover:bg-white/[0.1] sm:w-auto"
+              className="app-secondary-button w-full rounded-xl border px-4 py-3 text-sm font-medium transition sm:w-auto"
             >
               Cancel
             </button>

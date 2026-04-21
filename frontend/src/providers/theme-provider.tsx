@@ -1,10 +1,15 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useSyncExternalStore, type ReactNode } from "react";
 
-export type ThemeMode = "dark" | "light";
+import {
+  normalizeTheme,
+  THEME_COOKIE_MAX_AGE,
+  THEME_COOKIE_NAME,
+  THEME_STORAGE_KEY,
+  type ThemeMode,
+} from "@/lib/theme";
 
-const THEME_STORAGE_KEY = "hostel-app-theme";
 const THEME_CHANGE_EVENT = "hostel-theme-change";
 
 type ThemeContextValue = {
@@ -20,16 +25,37 @@ function applyTheme(theme: ThemeMode) {
   document.documentElement.style.colorScheme = theme;
 }
 
-function readStoredTheme(): ThemeMode {
-  if (typeof window === "undefined") {
-    return "dark";
-  }
-
-  const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
-  return storedTheme === "light" ? "light" : "dark";
+function writeThemeCookie(theme: ThemeMode) {
+  document.cookie = `${THEME_COOKIE_NAME}=${theme}; Path=/; Max-Age=${THEME_COOKIE_MAX_AGE}; SameSite=Lax`;
 }
 
-function getThemeSnapshot(): ThemeMode {
+function persistTheme(theme: ThemeMode) {
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+  } catch {
+    // Ignore storage access issues and still persist the server-readable cookie.
+  }
+
+  writeThemeCookie(theme);
+}
+
+function readStoredThemePreference(): ThemeMode | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (!storedTheme) {
+      return null;
+    }
+    return normalizeTheme(storedTheme);
+  } catch {
+    return null;
+  }
+}
+
+function getThemeSnapshot(fallbackTheme: ThemeMode): ThemeMode {
   if (typeof document !== "undefined") {
     const domTheme = document.documentElement.dataset.theme;
     if (domTheme === "light" || domTheme === "dark") {
@@ -37,7 +63,11 @@ function getThemeSnapshot(): ThemeMode {
     }
   }
 
-  return readStoredTheme();
+  if (typeof window !== "undefined") {
+    return readStoredThemePreference() ?? fallbackTheme;
+  }
+
+  return fallbackTheme;
 }
 
 function subscribeToTheme(onStoreChange: () => void) {
@@ -50,7 +80,8 @@ function subscribeToTheme(onStoreChange: () => void) {
       return;
     }
 
-    const nextTheme = readStoredTheme();
+    const currentTheme = normalizeTheme(document.documentElement.dataset.theme);
+    const nextTheme = readStoredThemePreference() ?? currentTheme;
     applyTheme(nextTheme);
     onStoreChange();
   };
@@ -68,16 +99,36 @@ function subscribeToTheme(onStoreChange: () => void) {
   };
 }
 
-function getServerThemeSnapshot(): ThemeMode {
-  return "dark";
-}
+export function ThemeProvider({
+  children,
+  initialTheme,
+}: {
+  children: ReactNode;
+  initialTheme: ThemeMode;
+}) {
+  const theme = useSyncExternalStore(
+    subscribeToTheme,
+    () => getThemeSnapshot(initialTheme),
+    () => initialTheme,
+  );
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
-  const theme = useSyncExternalStore(subscribeToTheme, getThemeSnapshot, getServerThemeSnapshot);
+  useEffect(() => {
+    applyTheme(theme);
+
+    const storedTheme = readStoredThemePreference();
+    if (storedTheme && storedTheme !== theme) {
+      applyTheme(storedTheme);
+      persistTheme(storedTheme);
+      window.dispatchEvent(new Event(THEME_CHANGE_EVENT));
+      return;
+    }
+
+    persistTheme(theme);
+  }, [theme]);
 
   const setTheme = useCallback((nextTheme: ThemeMode) => {
     applyTheme(nextTheme);
-    window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+    persistTheme(nextTheme);
     window.dispatchEvent(new Event(THEME_CHANGE_EVENT));
   }, []);
 

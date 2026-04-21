@@ -7,7 +7,6 @@ import {
   ArrowUp,
   ArrowUpDown,
   Check,
-  CheckCheck,
   ChevronLeft,
   ChevronRight,
   Clock3,
@@ -17,16 +16,19 @@ import {
   FileText,
   Filter,
   History,
-  Landmark,
   Plus,
   Receipt,
   RotateCcw,
   Search,
   Send,
-  ShieldAlert,
   Wallet,
   X,
 } from "lucide-react";
+
+import { ExportColumnModal } from "@/components/ui/export-column-modal";
+import { getSettings } from "@/lib/api";
+import { exportRowsToExcel, type ExportColumnDefinition } from "@/lib/export";
+import { openInvoicePrintView, openReceiptPrintView } from "@/lib/printable-documents";
 
 type ResidentStatus = "Active" | "Inactive" | "Vacated";
 type ResidentBillingHealth = "Clear" | "Outstanding" | "Overdue";
@@ -548,7 +550,7 @@ function roomLabel(resident: ResidentProfile | LedgerRow) {
 }
 
 function locationLabel(resident: ResidentProfile | LedgerRow) {
-  return `${resident.hostel} · ${resident.floor}`;
+  return `${resident.hostel} - ${resident.floor}`;
 }
 
 function chipToneForLedgerStatus(status: LedgerStatus): FeedbackTone {
@@ -605,6 +607,27 @@ function chipToneForBillingHealth(health: ResidentBillingHealth): FeedbackTone {
 
 function chipToneForDirection(direction: LedgerDirection): FeedbackTone {
   return direction === "Credit" ? "success" : "warning";
+}
+
+function invoiceStatusFromLedgerStatus(status: LedgerStatus): InvoiceLifecycleStatus {
+  switch (status) {
+    case "Paid":
+      return "Paid";
+    case "Partially Paid":
+      return "Partially Paid";
+    case "Pending":
+      return "Issued";
+    case "Overdue":
+      return "Overdue";
+    case "Adjusted":
+      return "Adjusted";
+    case "Reversed":
+      return "Adjusted";
+    case "Failed":
+      return "Issued";
+    default:
+      return "Draft";
+  }
 }
 
 function suggestedDueDate(billingCycle: string, terms: PaymentTerms) {
@@ -665,12 +688,14 @@ function buildLineItems(
 function BillingBadge({
   children,
   tone,
+  className,
 }: {
   children: React.ReactNode;
   tone: FeedbackTone;
+  className?: string;
 }) {
   return (
-    <span className="billing-chip" data-tone={tone}>
+    <span className={className ? `billing-chip ${className}` : "billing-chip"} data-tone={tone}>
       {children}
     </span>
   );
@@ -735,6 +760,154 @@ function SortableLedgerHeader({
   );
 }
 
+const ledgerExportColumns: ExportColumnDefinition<LedgerRow>[] = [
+  {
+    id: "date",
+    label: "Date",
+    description: "Ledger posting date.",
+    valueType: "date",
+    align: "center",
+    width: 14,
+    getValue: (row) => row.date,
+  },
+  {
+    id: "resident",
+    label: "Resident",
+    description: "Resident full name.",
+    width: 22,
+    getValue: (row) => row.resident,
+  },
+  {
+    id: "regId",
+    label: "Registration ID",
+    description: "Resident registration code.",
+    width: 18,
+    getValue: (row) => row.regId,
+  },
+  {
+    id: "room",
+    label: "Room / Bed",
+    description: "Assigned room and bed.",
+    width: 18,
+    getValue: (row) => roomLabel(row),
+  },
+  {
+    id: "location",
+    label: "Location",
+    description: "Hostel block and floor.",
+    width: 22,
+    getValue: (row) => locationLabel(row),
+  },
+  {
+    id: "type",
+    label: "Ledger Type",
+    description: "Invoice, payment, adjustment, or refund.",
+    align: "center",
+    width: 16,
+    getValue: (row) => row.type,
+  },
+  {
+    id: "category",
+    label: "Category",
+    description: "Billing category applied to the ledger row.",
+    width: 18,
+    getValue: (row) => row.category,
+  },
+  {
+    id: "amount",
+    label: "Amount",
+    description: "Transaction amount.",
+    valueType: "currency",
+    align: "right",
+    width: 14,
+    getValue: (row) => row.amount,
+  },
+  {
+    id: "direction",
+    label: "Direction",
+    description: "Debit or credit movement.",
+    align: "center",
+    width: 12,
+    getValue: (row) => row.direction,
+  },
+  {
+    id: "balance",
+    label: "Balance",
+    description: "Outstanding balance after the transaction.",
+    valueType: "currency",
+    align: "right",
+    width: 14,
+    getValue: (row) => row.balance,
+  },
+  {
+    id: "status",
+    label: "Status",
+    description: "Current payment status.",
+    align: "center",
+    width: 16,
+    getValue: (row) => row.status,
+  },
+  {
+    id: "reference",
+    label: "Reference",
+    description: "Invoice or payment reference number.",
+    width: 20,
+    getValue: (row) => row.reference,
+  },
+  {
+    id: "invoiceType",
+    label: "Invoice Type",
+    description: "Linked invoice type when available.",
+    width: 24,
+    getValue: (row) => row.invoiceType ?? "Resident billing",
+  },
+  {
+    id: "note",
+    label: "Internal Note",
+    description: "Short operator note attached to the ledger row.",
+    defaultSelected: false,
+    width: 36,
+    getValue: (row) => row.note,
+  },
+  {
+    id: "description",
+    label: "Description",
+    description: "Resident-facing or descriptive summary.",
+    defaultSelected: false,
+    width: 40,
+    getValue: (row) => row.description,
+  },
+];
+
+const ledgerExportColumnOptions = ledgerExportColumns.map(({ id, label, description }) => ({
+  id,
+  label,
+  description,
+}));
+
+const defaultLedgerExportColumnIds = ledgerExportColumns
+  .filter((column) => column.defaultSelected !== false)
+  .map((column) => column.id);
+
+const ledgerSortLabels: Record<SortKey, string> = {
+  date: "Date",
+  resident: "Resident",
+  room: "Room / Bed",
+  type: "Ledger Type",
+  category: "Category",
+  amount: "Amount",
+  direction: "Direction",
+  balance: "Balance",
+  status: "Status",
+  reference: "Reference",
+};
+
+function titleCase(value: string) {
+  return value
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
 export default function BillingPage() {
   const [ledgerRows, setLedgerRows] = useState<LedgerRow[]>(initialLedgerRows);
   const [searchQuery, setSearchQuery] = useState("");
@@ -751,11 +924,17 @@ export default function BillingPage() {
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isLedgerExportModalOpen, setIsLedgerExportModalOpen] = useState(false);
+  const [isLedgerExporting, setIsLedgerExporting] = useState(false);
+  const [selectedLedgerExportColumnIds, setSelectedLedgerExportColumnIds] = useState<string[]>(
+    defaultLedgerExportColumnIds,
+  );
 
   const [invoiceScope, setInvoiceScope] = useState<InvoiceScope>("single");
   const [selectedResidentId, setSelectedResidentId] = useState("res-001");
   const [billingCycle, setBillingCycle] = useState(ACTIVE_BILLING_CYCLE);
   const [invoiceType, setInvoiceType] = useState<InvoiceType>("Monthly Rent");
+  const [invoiceDate, setInvoiceDate] = useState(TODAY.toISOString().slice(0, 10));
   const [paymentTerms, setPaymentTerms] = useState<PaymentTerms>("7 days");
   const [dueDate, setDueDate] = useState(suggestedDueDate(ACTIVE_BILLING_CYCLE, "7 days"));
   const [invoiceStatus, setInvoiceStatus] = useState<InvoiceLifecycleStatus>("Draft");
@@ -773,6 +952,11 @@ export default function BillingPage() {
   const [enableLateFeeAutomation, setEnableLateFeeAutomation] = useState(true);
   const [allowPartialPayments, setAllowPartialPayments] = useState(true);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [drawerView, setDrawerView] = useState<"details" | "preview">("details");
+  const [isInvoiceDrawerOpen, setIsInvoiceDrawerOpen] = useState(false);
+  const [billingNote, setBillingNote] = useState("Resident-linked hostel charges for the selected billing cycle.");
+  const [invoiceRemarks, setInvoiceRemarks] = useState("");
+  const [internalNote, setInternalNote] = useState("");
   const [unsavedChanges, setUnsavedChanges] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState("2026-04-03T09:42:00");
   const [invoiceReference, setInvoiceReference] = useState("INV-260403-901");
@@ -801,6 +985,11 @@ export default function BillingPage() {
     setInvoicePaidAmount(0);
     setInvoiceStatus("Draft");
     setPreviewOpen(false);
+    setDrawerView("details");
+    setInvoiceDate(TODAY.toISOString().slice(0, 10));
+    setBillingNote(`${invoiceType} charges for ${formatCycle(billingCycle)}.`);
+    setInvoiceRemarks("");
+    setInternalNote("");
     setInvoiceReference(`INV-${billingCycle.replace("-", "")}-${selectedResident.regId.slice(-3)}`);
   }, [billingCycle, enableProration, invoiceType, selectedResident]);
 
@@ -866,6 +1055,16 @@ export default function BillingPage() {
       Array.from(new Set(residents.map((resident) => `${resident.room} / ${resident.bed}`))),
     [],
   );
+
+  const activeFilterCount =
+    (searchQuery.trim() ? 1 : 0) +
+    (typeFilter !== "all" ? 1 : 0) +
+    (statusFilter !== "all" ? 1 : 0) +
+    (dateRange !== "all" ? 1 : 0) +
+    (categoryFilter !== "all" ? 1 : 0) +
+    (roomFilter !== FILTER_ALL_ROOMS ? 1 : 0) +
+    (exceptionFilter !== "all" ? 1 : 0) +
+    (invoiceTypeFilter !== FILTER_ALL_INVOICE_TYPES ? 1 : 0);
 
   const filteredLedger = useMemo(() => {
     return ledgerRows.filter((row) => {
@@ -1021,6 +1220,37 @@ export default function BillingPage() {
   const pagedRows = sortedLedger.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const pageStart = sortedLedger.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
   const pageEnd = Math.min(sortedLedger.length, safePage * PAGE_SIZE);
+  const selectedLedgerExportColumns = useMemo(
+    () => ledgerExportColumns.filter((column) => selectedLedgerExportColumnIds.includes(column.id)),
+    [selectedLedgerExportColumnIds],
+  );
+  const ledgerFilterSummary = useMemo(() => {
+    const filters = [
+      searchQuery.trim() ? `Search: ${searchQuery.trim()}` : null,
+      typeFilter !== "all" ? `Type: ${typeFilter}` : null,
+      statusFilter !== "all" ? `Status: ${statusFilter}` : null,
+      dateRange !== "all" ? `Date Range: ${titleCase(dateRange)}` : null,
+      categoryFilter !== "all" ? `Category: ${categoryFilter}` : null,
+      roomFilter !== FILTER_ALL_ROOMS ? `Room: ${roomFilter}` : null,
+      exceptionFilter !== "all" ? `Exception: ${titleCase(exceptionFilter)}` : null,
+      invoiceTypeFilter !== FILTER_ALL_INVOICE_TYPES ? `Invoice Type: ${invoiceTypeFilter}` : null,
+    ].filter(Boolean);
+
+    return filters.length > 0 ? filters.join(" | ") : "Default billing ledger view";
+  }, [
+    categoryFilter,
+    dateRange,
+    exceptionFilter,
+    invoiceTypeFilter,
+    roomFilter,
+    searchQuery,
+    statusFilter,
+    typeFilter,
+  ]);
+  const ledgerSortSummary = useMemo(
+    () => `${ledgerSortLabels[sortKey]} (${sortDirection.toUpperCase()})`,
+    [sortDirection, sortKey],
+  );
 
   const duplicateInvoice = useMemo(
     () =>
@@ -1202,10 +1432,6 @@ export default function BillingPage() {
     setSortDirection(nextSortKey === "date" || nextSortKey === "amount" || nextSortKey === "balance" ? "desc" : "asc");
   }
 
-  function jumpToInvoiceBuilder() {
-    document.getElementById("billing-invoice-builder")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
   function resetInvoiceDraft() {
     setLineItems(buildLineItems(selectedResident, invoiceType, enableProration));
     setDiscountAmount(0);
@@ -1215,8 +1441,51 @@ export default function BillingPage() {
     setInvoicePaidAmount(0);
     setInvoiceStatus("Draft");
     setPreviewOpen(false);
+    setDrawerView("details");
+    setInvoiceDate(TODAY.toISOString().slice(0, 10));
+    setBillingNote(`${invoiceType} charges for ${formatCycle(billingCycle)}.`);
+    setInvoiceRemarks("");
+    setInternalNote("");
     setUnsavedChanges(false);
     setFeedback({ tone: "info", message: "Invoice draft reset to the current resident template." });
+  }
+
+  function openInvoiceDrawer(options?: {
+    residentId?: string;
+    invoiceType?: InvoiceType;
+    billingCycle?: string;
+    preview?: boolean;
+    status?: InvoiceLifecycleStatus;
+  }) {
+    if (options?.residentId) {
+      setSelectedResidentId(options.residentId);
+    }
+    if (options?.invoiceType) {
+      setInvoiceType(options.invoiceType);
+    }
+    if (options?.billingCycle) {
+      setBillingCycle(options.billingCycle);
+    }
+    if (options?.status) {
+      setInvoiceStatus(options.status);
+    }
+
+    const nextPreview = Boolean(options?.preview);
+    setPreviewOpen(nextPreview);
+    setDrawerView(nextPreview ? "preview" : "details");
+    setIsInvoiceDrawerOpen(true);
+  }
+
+  function closeInvoiceDrawer() {
+    if (unsavedChanges) {
+      const confirmed = window.confirm("You have unsaved invoice changes. Close the invoice drawer anyway?");
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    setIsInvoiceDrawerOpen(false);
+    setDrawerView("details");
   }
 
   function updateLineItem(
@@ -1274,20 +1543,9 @@ export default function BillingPage() {
     }
 
     setPreviewOpen(true);
+    setDrawerView("preview");
     setInvoiceStatus((current) => (current === "Draft" ? "Pending Review" : current));
     setFeedback({ tone: "info", message: "Invoice preview prepared for finance review." });
-  }
-
-  function approveInvoice() {
-    if (blockingIssues.length) {
-      setFeedback({ tone: "danger", message: blockingIssues[0] });
-      return;
-    }
-
-    setInvoiceStatus("Approved");
-    setLastSavedAt(TODAY.toISOString());
-    setUnsavedChanges(false);
-    setFeedback({ tone: "success", message: "Invoice approved. It is ready to issue to the resident ledger." });
   }
 
   function issueInvoice() {
@@ -1296,8 +1554,8 @@ export default function BillingPage() {
       return;
     }
 
-    if (invoiceStatus !== "Approved") {
-      setFeedback({ tone: "warning", message: "Approve the invoice before issuing it." });
+    if (isLockedInvoice) {
+      setFeedback({ tone: "info", message: "This invoice is already issued or settled. Use send, download, or payment actions instead." });
       return;
     }
 
@@ -1435,17 +1693,311 @@ export default function BillingPage() {
   }
 
   function downloadInvoice() {
-    if (displayInvoiceStatus === "Draft" || displayInvoiceStatus === "Pending Review") {
-      setFeedback({ tone: "warning", message: "Approve and issue the invoice before exporting a final PDF." });
+    if (!previewOpen && !["Issued", "Partially Paid", "Paid", "Overdue"].includes(displayInvoiceStatus)) {
+      setFeedback({ tone: "warning", message: "Open invoice preview or issue the invoice before downloading the PDF." });
       return;
     }
 
-    setFeedback({ tone: "info", message: "Invoice PDF export prepared with the latest approved line items and totals." });
+    const opened = openInvoicePrintView({
+      balanceDue,
+      billingCycle,
+      dueDate,
+      invoiceDate,
+      invoiceType,
+      lineItems: lineItems.map((item) => ({
+        amount: lineAmount(item),
+        label: item.label,
+        quantity: item.quantity,
+        rate: item.rate,
+      })),
+      location: locationLabel(selectedResident),
+      paidAmount: invoicePaidAmount,
+      reference: invoiceReference,
+      regId: selectedResident.regId,
+      remarks: invoiceRemarks || billingNote,
+      residentName: invoiceScope === "bulk" ? `${selectedResident.name} (template resident)` : selectedResident.name,
+      room: roomLabel(selectedResident),
+      status: displayInvoiceStatus,
+      subtotal,
+      title: invoiceScope === "bulk" ? `${formatCycle(billingCycle)} Bulk Invoice Run` : `${invoiceReference} Invoice`,
+      totalAmount,
+      totals: [
+        { label: "Subtotal", value: subtotal },
+        ...(previousDue ? [{ label: "Previous due carried forward", value: previousDue }] : []),
+        ...(fineAmount ? [{ label: "Late fee / fines", value: fineAmount }] : []),
+        ...(totalDiscounts ? [{ label: "Discounts and waivers", value: -totalDiscounts }] : []),
+        ...(depositAdjustment ? [{ label: "Deposit adjustment", value: -depositAdjustment }] : []),
+      ],
+    });
+
+    if (!opened) {
+      setFeedback({
+        tone: "danger",
+        message: "The invoice document could not open because the browser blocked the popup. Allow popups and try again.",
+      });
+      return;
+    }
+
+    setFeedback({
+      tone: "info",
+      message:
+        "Invoice print view opened successfully. Use the browser print dialog to save it as PDF if needed.",
+    });
   }
 
   function viewBillingHistory() {
     setSearchQuery(selectedResident.name);
     setFeedback({ tone: "info", message: `Billing ledger filtered to ${selectedResident.name} for quick account review.` });
+  }
+
+  function resetLedgerFilters() {
+    setSearchQuery("");
+    setTypeFilter("all");
+    setStatusFilter("all");
+    setDateRange("all");
+    setCategoryFilter("all");
+    setRoomFilter(FILTER_ALL_ROOMS);
+    setExceptionFilter("all");
+    setInvoiceTypeFilter(FILTER_ALL_INVOICE_TYPES);
+    setShowAdvancedFilters(false);
+    setCurrentPage(1);
+    setFeedback({ tone: "info", message: "Billing filters reset to the default ledger view." });
+  }
+
+  function exportLedger() {
+    if (sortedLedger.length === 0) {
+      setFeedback({
+        tone: "warning",
+        message: "No ledger rows match the current search and filter set, so there is nothing to export.",
+      });
+      return;
+    }
+
+    setIsLedgerExportModalOpen(true);
+  }
+
+  function closeLedgerExportModal() {
+    setIsLedgerExportModalOpen(false);
+  }
+
+  function toggleLedgerExportColumn(columnId: string) {
+    setSelectedLedgerExportColumnIds((current) =>
+      current.includes(columnId) ? current.filter((item) => item !== columnId) : [...current, columnId],
+    );
+  }
+
+  function resetLedgerExportColumns() {
+    setSelectedLedgerExportColumnIds(defaultLedgerExportColumnIds);
+  }
+
+  function selectAllLedgerExportColumns() {
+    setSelectedLedgerExportColumnIds(ledgerExportColumns.map((column) => column.id));
+  }
+
+  async function confirmLedgerExport() {
+    if (sortedLedger.length === 0) {
+      setFeedback({
+        tone: "warning",
+        message: "No ledger rows match the current search and filter set, so there is nothing to export.",
+      });
+      setIsLedgerExportModalOpen(false);
+      return;
+    }
+
+    if (selectedLedgerExportColumns.length === 0) {
+      setFeedback({
+        tone: "warning",
+        message: "Select at least one ledger column before exporting to Excel.",
+      });
+      return;
+    }
+
+    setIsLedgerExporting(true);
+
+    try {
+      let settingsRecord:
+        | Awaited<ReturnType<typeof getSettings>>["data"]
+        | undefined;
+
+      try {
+        const settingsSnapshot = await getSettings();
+        settingsRecord = settingsSnapshot.data;
+      } catch {
+        settingsRecord = undefined;
+      }
+
+      const currencyCode = settingsRecord?.financial.currency_code?.trim().toUpperCase() || "USD";
+      const hostelName = settingsRecord?.hostel.name?.trim() || "Hostel";
+      const exportColumns = selectedLedgerExportColumns.map((column) =>
+        column.id === "amount" || column.id === "balance"
+          ? { ...column, label: `${column.label} (${currencyCode})` }
+          : column,
+      );
+
+      exportRowsToExcel({
+        rows: sortedLedger,
+        columns: exportColumns,
+        fileName: `billing-ledger-${new Date().toISOString().slice(0, 10)}`,
+        sheetName: "Billing Ledger",
+        branding: {
+          organizationName: hostelName,
+          reportTitle: "Billing Ledger Report",
+          reportSubtitle: "Resident invoices, payments, credits, and outstanding balances from the current ledger view.",
+          generatedAt: new Date().toISOString(),
+          metadata: [
+            { label: "Export Scope", value: ledgerFilterSummary },
+            { label: "Sort Order", value: ledgerSortSummary },
+            ...(settingsRecord?.hostel.code?.trim()
+              ? [{ label: "Hostel Code", value: settingsRecord.hostel.code.trim() }]
+              : []),
+          ],
+          address: settingsRecord?.hostel.address?.trim(),
+          phone: settingsRecord?.hostel.phone?.trim(),
+          email: settingsRecord?.hostel.email?.trim(),
+          website: settingsRecord?.branding.website_url?.trim(),
+          primaryColor: settingsRecord?.branding.primary_color,
+          accentColor: settingsRecord?.branding.accent_color,
+          currencyCode,
+        },
+      });
+      setFeedback({
+        tone: "success",
+        message: `Professional ledger export downloaded for ${hostelName} with ${sortedLedger.length} row${sortedLedger.length === 1 ? "" : "s"} and ${selectedLedgerExportColumns.length} selected column${selectedLedgerExportColumns.length === 1 ? "" : "s"}.`,
+      });
+      setIsLedgerExportModalOpen(false);
+    } catch {
+      setFeedback({
+        tone: "danger",
+        message: "Ledger export could not be created. Please try again.",
+      });
+    } finally {
+      setIsLedgerExporting(false);
+    }
+  }
+
+  function openPaymentWorkflow() {
+    const nextOpenInvoice =
+      ledgerRows.find((row) => row.type === "Invoice" && row.status === "Overdue" && row.balance > 0) ??
+      ledgerRows.find(
+        (row) =>
+          row.type === "Invoice" &&
+          (row.status === "Pending" || row.status === "Partially Paid") &&
+          row.balance > 0,
+      );
+
+    if (!nextOpenInvoice) {
+      setFeedback({ tone: "info", message: "No open resident invoices require payment follow-up right now." });
+      return;
+    }
+
+    openLedgerInvoice(nextOpenInvoice);
+    setFeedback({
+      tone: "info",
+      message: `${nextOpenInvoice.reference} opened in the invoice drawer so you can review and record payment.`,
+    });
+  }
+
+  function openLedgerInvoice(row: LedgerRow) {
+    openInvoiceDrawer({
+      residentId: row.residentId,
+      invoiceType: row.invoiceType ?? "Monthly Rent",
+      billingCycle: row.date.slice(0, 7),
+      preview: row.type === "Invoice",
+      status: row.type === "Invoice" ? invoiceStatusFromLedgerStatus(row.status) : "Draft",
+    });
+    setFeedback({ tone: "info", message: `${row.reference} opened in the invoice drawer for review.` });
+  }
+
+  function downloadLedgerDocument(row: LedgerRow) {
+    if (row.type === "Payment" && row.status === "Failed") {
+      setFeedback({
+        tone: "warning",
+        message: `${row.reference} is marked as failed, so there is no valid receipt to download.`,
+      });
+      return;
+    }
+
+    const matchesCurrentInvoice = row.reference === invoiceReference;
+
+    const opened =
+      row.type === "Invoice"
+        ? openInvoicePrintView({
+            balanceDue: row.balance,
+            billingCycle: row.date.slice(0, 7),
+            dueDate: matchesCurrentInvoice ? dueDate : suggestedDueDate(row.date.slice(0, 7), "7 days"),
+            invoiceDate: row.date,
+            invoiceType: row.invoiceType ?? "Resident billing",
+            lineItems: matchesCurrentInvoice
+              ? lineItems.map((item) => ({
+                  amount: lineAmount(item),
+                  label: item.label,
+                  quantity: item.quantity,
+                  rate: item.rate,
+                }))
+              : [
+                  {
+                    amount: row.amount,
+                    label: row.invoiceType ?? row.category,
+                    meta: row.description || row.note,
+                    quantity: 1,
+                    rate: row.amount,
+                  },
+                ],
+            location: locationLabel(row),
+            paidAmount: matchesCurrentInvoice ? invoicePaidAmount : Math.max(row.amount - row.balance, 0),
+            reference: row.reference,
+            regId: row.regId,
+            remarks: row.description || row.note,
+            residentName: row.resident,
+            room: roomLabel(row),
+            status: row.status,
+            subtotal: matchesCurrentInvoice ? subtotal : row.amount,
+            title: `${row.reference} Invoice`,
+            totalAmount: row.amount,
+            totals: matchesCurrentInvoice
+              ? [
+                  { label: "Subtotal", value: subtotal },
+                  ...(previousDue ? [{ label: "Previous due carried forward", value: previousDue }] : []),
+                  ...(fineAmount ? [{ label: "Late fee / fines", value: fineAmount }] : []),
+                  ...(totalDiscounts ? [{ label: "Discounts and waivers", value: -totalDiscounts }] : []),
+                  ...(depositAdjustment ? [{ label: "Deposit adjustment", value: -depositAdjustment }] : []),
+                ]
+              : [{ label: "Subtotal", value: row.amount }],
+          })
+        : openReceiptPrintView({
+            amount: row.amount,
+            balanceAfter: row.balance,
+            date: row.date,
+            location: locationLabel(row),
+            note: row.description || row.note,
+            reference: row.reference,
+            regId: row.regId,
+            residentName: row.resident,
+            room: roomLabel(row),
+            status: row.status,
+            subtitle:
+              row.type === "Payment"
+                ? `${row.resident} payment receipt prepared from the billing ledger.`
+                : `${row.type} billing document prepared from the ledger entry.`,
+            title: row.type === "Payment" ? `${row.reference} Receipt` : `${row.reference} ${row.type}`,
+            typeLabel: row.type === "Payment" ? "Payment receipt" : `${row.type} record`,
+          });
+
+    if (!opened) {
+      setFeedback({
+        tone: "danger",
+        message: "The document could not open because the browser blocked the popup. Allow popups and try again.",
+      });
+      return;
+    }
+
+    setFeedback({
+      tone: "info",
+      message:
+        row.type === "Invoice"
+          ? `${row.reference} invoice print view opened. Use Save as PDF in the print dialog if needed.`
+          : `${row.reference} receipt print view opened successfully.`,
+    });
   }
 
   function markLedgerRowPaid(row: LedgerRow) {
@@ -1498,52 +2050,840 @@ export default function BillingPage() {
       ? `${formatCycle(billingCycle)} bulk invoice run`
       : `${invoiceType} for ${selectedResident.name}`;
 
+  const hasIssuedInvoice = ["Issued", "Partially Paid", "Paid", "Overdue"].includes(displayInvoiceStatus);
+  const canRecordPayment = hasIssuedInvoice && balanceDue > 0;
+
+  const invoiceSummaryCard = (
+    <article className="billing-card billing-card-elevated p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--billing-text-muted)]">
+            Invoice Summary
+          </p>
+          <h3 className="mt-2 text-lg font-semibold text-[var(--billing-text-primary)]">{previewTitle}</h3>
+        </div>
+        <BillingBadge tone={chipToneForInvoiceStatus(displayInvoiceStatus)}>{displayInvoiceStatus}</BillingBadge>
+      </div>
+
+      <div className="mt-5 space-y-1">
+        <div className="billing-summary-row">
+          <span className="text-[var(--billing-text-secondary)]">Subtotal</span>
+          <span className="billing-value-neutral">{formatCurrency(subtotal)}</span>
+        </div>
+        <div className="billing-summary-row">
+          <span className="text-[var(--billing-text-secondary)]">Discounts</span>
+          <span className="billing-value-negative">-{formatCurrency(totalDiscounts)}</span>
+        </div>
+        <div className="billing-summary-row">
+          <span className="text-[var(--billing-text-secondary)]">Fines</span>
+          <span className="billing-value-neutral">{formatCurrency(fineAmount)}</span>
+        </div>
+        <div className="billing-summary-row">
+          <span className="text-[var(--billing-text-secondary)]">Previous dues</span>
+          <span className="billing-value-neutral">{formatCurrency(previousDue)}</span>
+        </div>
+        <div className="billing-summary-row">
+          <span className="text-[var(--billing-text-secondary)]">Deposit adjustment</span>
+          <span className="billing-value-positive">-{formatCurrency(depositAdjustment)}</span>
+        </div>
+        <div className="billing-summary-row">
+          <span className="text-base font-semibold text-[var(--billing-text-primary)]">Total amount</span>
+          <span className={totalAmount < 0 ? "billing-value-positive text-base" : "billing-value-neutral text-base"}>
+            {formatCurrency(totalAmount)}
+          </span>
+        </div>
+        <div className="billing-summary-row">
+          <span className="text-[var(--billing-text-secondary)]">Paid amount</span>
+          <span className="billing-value-positive">{formatCurrency(invoicePaidAmount)}</span>
+        </div>
+        <div className="billing-summary-row">
+          <span className="text-base font-semibold text-[var(--billing-text-primary)]">Balance due</span>
+          <span className={balanceDue > 0 ? "billing-value-negative text-base" : "billing-value-positive text-base"}>
+            {formatCurrency(balanceDue)}
+          </span>
+        </div>
+      </div>
+
+      <div className="mt-5 space-y-3">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-[var(--billing-text-secondary)]">Payment progress</span>
+          <span className="font-medium text-[var(--billing-text-primary)]">{Math.round(paymentProgress)}%</span>
+        </div>
+        <div className="billing-progress-track">
+          <div className="billing-progress-fill" style={{ width: `${paymentProgress}%` }} />
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-[16px] border border-[var(--billing-border-subtle)] bg-[var(--color-overlay-soft)] p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--billing-text-muted)]">
+            Resident billing status
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <BillingBadge tone={chipToneForBillingHealth(selectedResident.billingHealth)}>
+              {selectedResident.billingHealth}
+            </BillingBadge>
+            <BillingBadge tone="warning">Previous due {formatCurrency(selectedResident.previousDue)}</BillingBadge>
+          </div>
+          <p className="mt-3 text-sm text-[var(--billing-text-secondary)]">{selectedResident.lastPaymentNote}</p>
+        </div>
+
+        <div className="rounded-[16px] border border-[var(--billing-border-subtle)] bg-[var(--color-overlay-soft)] p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--billing-text-muted)]">
+            Invoice activity
+          </p>
+          <p className="mt-3 text-sm font-medium text-[var(--billing-text-primary)]">
+            Last saved {formatDateTime(lastSavedAt)}
+          </p>
+          <p className="mt-1 text-sm text-[var(--billing-text-secondary)]">
+            {invoiceScope === "bulk"
+              ? `${activeResidents.length} active residents are included in the current billing template.`
+              : `${selectedResident.lastUpdatedBy} updated billing activity on ${formatDateTime(
+                  selectedResident.lastActivity,
+                )}.`}
+          </p>
+          {invoiceScope === "bulk" ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <BillingBadge tone="info">{activeResidents.length} active residents</BillingBadge>
+              <BillingBadge tone={bulkDuplicateCount > 0 ? "warning" : "success"}>
+                {bulkDuplicateCount} duplicate protections
+              </BillingBadge>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      {invoiceScope === "bulk" ? (
+        <div className="mt-5 rounded-[16px] border border-[var(--billing-border-subtle)] bg-[var(--color-overlay-soft)] p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-[var(--billing-text-primary)]">Bulk run estimate</p>
+              <p className="text-xs text-[var(--billing-text-secondary)]">
+                Current charges projected across all active residents in this billing cycle.
+              </p>
+            </div>
+            <span className="text-lg font-semibold text-[var(--billing-text-primary)]">
+              {formatCurrency(portfolioEstimate)}
+            </span>
+          </div>
+        </div>
+      ) : null}
+    </article>
+  );
+
+  const invoiceIssuesBlock = (
+    <>
+      {blockingIssues.length ? (
+        <div className="billing-alert" data-tone="danger">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-[var(--billing-text-primary)]">Validation checks need attention</p>
+              <ul className="space-y-1.5 text-sm text-[var(--billing-text-secondary)]">
+                {blockingIssues.map((issue) => (
+                  <li key={issue}>- {issue}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {advisoryNotes.length ? (
+        <div className="rounded-[18px] border border-[var(--billing-border-subtle)] bg-[var(--color-overlay-soft)] p-4">
+          <div className="flex items-start gap-3">
+            <Clock3 className="mt-0.5 size-4 shrink-0 text-[var(--billing-text-muted)]" />
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-[var(--billing-text-primary)]">Billing notes</p>
+              <ul className="space-y-1.5 text-sm text-[var(--billing-text-secondary)]">
+                {advisoryNotes.map((note) => (
+                  <li key={note}>- {note}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+
+  const invoiceDetailsView = (
+    <>
+      <article className="billing-card p-5">
+        <div className="flex flex-col gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-[var(--billing-text-primary)]">Resident Information</h3>
+            <p className="mt-1 text-sm text-[var(--billing-text-secondary)]">
+              Select the resident, billing cycle, and room context for this invoice.
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-[var(--billing-text-primary)]">Invoice scope</span>
+              <select
+                className="billing-control"
+                disabled={isLockedInvoice}
+                onChange={(event) => {
+                  setInvoiceScope(event.target.value as InvoiceScope);
+                  markDirty();
+                }}
+                value={invoiceScope}
+              >
+                <option value="single">Single resident</option>
+                <option value="bulk">Bulk active residents</option>
+              </select>
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-[var(--billing-text-primary)]">
+                {invoiceScope === "bulk" ? "Template resident" : "Resident"}
+              </span>
+              <select
+                className="billing-control"
+                disabled={isLockedInvoice}
+                onChange={(event) => {
+                  setSelectedResidentId(event.target.value);
+                  markDirty();
+                }}
+                value={selectedResidentId}
+              >
+                {residents.map((resident) => (
+                  <option key={resident.id} value={resident.id}>
+                    {resident.name} | {resident.regId}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-[var(--billing-text-primary)]">Registration ID</span>
+              <input className="billing-control" readOnly value={selectedResident.regId} />
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-[var(--billing-text-primary)]">Room / Bed</span>
+              <input className="billing-control" readOnly value={roomLabel(selectedResident)} />
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-[var(--billing-text-primary)]">Hostel / Floor</span>
+              <input className="billing-control" readOnly value={locationLabel(selectedResident)} />
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-[var(--billing-text-primary)]">Billing cycle</span>
+              <input
+                className="billing-control"
+                disabled={isLockedInvoice}
+                onChange={(event) => {
+                  setBillingCycle(event.target.value);
+                  markDirty();
+                }}
+                type="month"
+                value={billingCycle}
+              />
+            </label>
+          </div>
+        </div>
+      </article>
+
+      <article className="billing-card p-5">
+        <div className="flex flex-col gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-[var(--billing-text-primary)]">Invoice Configuration</h3>
+            <p className="mt-1 text-sm text-[var(--billing-text-secondary)]">
+              Configure invoice type, dates, payment terms, and reference details.
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-[var(--billing-text-primary)]">Invoice type</span>
+              <select
+                className="billing-control"
+                disabled={isLockedInvoice}
+                onChange={(event) => {
+                  setInvoiceType(event.target.value as InvoiceType);
+                  markDirty();
+                }}
+                value={invoiceType}
+              >
+                {invoiceTypeOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-[var(--billing-text-primary)]">Invoice date</span>
+              <input
+                className="billing-control"
+                disabled={isLockedInvoice}
+                onChange={(event) => {
+                  setInvoiceDate(event.target.value);
+                  markDirty();
+                }}
+                type="date"
+                value={invoiceDate}
+              />
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-[var(--billing-text-primary)]">Due date</span>
+              <input
+                className="billing-control"
+                disabled={isLockedInvoice}
+                onChange={(event) => {
+                  setDueDate(event.target.value);
+                  markDirty();
+                }}
+                type="date"
+                value={dueDate}
+              />
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-[var(--billing-text-primary)]">Payment terms</span>
+              <select
+                className="billing-control"
+                disabled={isLockedInvoice}
+                onChange={(event) => {
+                  setPaymentTerms(event.target.value as PaymentTerms);
+                  markDirty();
+                }}
+                value={paymentTerms}
+              >
+                {paymentTermsOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="space-y-2 md:col-span-2">
+              <span className="text-sm font-medium text-[var(--billing-text-primary)]">Reference number</span>
+              <input
+                className="billing-control"
+                disabled={isLockedInvoice}
+                onChange={(event) => {
+                  setInvoiceReference(event.target.value);
+                  markDirty();
+                }}
+                value={invoiceReference}
+              />
+            </label>
+          </div>
+        </div>
+      </article>
+
+      <article className="billing-card p-5">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-[var(--billing-text-primary)]">Charge Line Items</h3>
+              <p className="mt-1 text-sm text-[var(--billing-text-secondary)]">
+                Add rent, mess, utility, deposit, fine, and adjustment charges.
+              </p>
+            </div>
+            <button className="billing-button-secondary" disabled={isLockedInvoice} onClick={addCustomCharge} type="button">
+              <Plus className="size-4" />
+              Add custom charge
+            </button>
+          </div>
+
+          <div className="billing-line-table-wrap">
+            <table className="billing-line-table">
+              <thead>
+                <tr>
+                  <th>Charge title</th>
+                  <th>Category</th>
+                  <th className="text-right">Qty</th>
+                  <th className="text-right">Rate</th>
+                  <th className="text-right">Amount</th>
+                  <th className="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lineItems.map((item) => (
+                  <tr key={item.id}>
+                    <td>
+                      <input
+                        className="billing-control"
+                        disabled={isLockedInvoice}
+                        onChange={(event) => updateLineItem(item.id, "label", event.target.value)}
+                        value={item.label}
+                      />
+                    </td>
+                    <td>
+                      <select
+                        className="billing-control"
+                        disabled={isLockedInvoice}
+                        onChange={(event) => updateLineItem(item.id, "category", event.target.value)}
+                        value={item.category}
+                      >
+                        {lineItemCategories.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <input
+                        className="billing-control text-right"
+                        disabled={isLockedInvoice}
+                        min="0"
+                        onChange={(event) => updateLineItem(item.id, "quantity", event.target.value)}
+                        step="1"
+                        type="number"
+                        value={item.quantity}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        className="billing-control text-right"
+                        disabled={isLockedInvoice}
+                        onChange={(event) => updateLineItem(item.id, "rate", event.target.value)}
+                        step="0.01"
+                        type="number"
+                        value={item.rate}
+                      />
+                    </td>
+                    <td className="text-right text-sm font-semibold text-[var(--billing-text-primary)]">
+                      {formatCurrency(lineAmount(item))}
+                    </td>
+                    <td>
+                      <div className="flex justify-end">
+                        <button
+                          className="billing-row-action"
+                          disabled={isLockedInvoice || lineItems.length === 1}
+                          onClick={() => removeLineItem(item.id)}
+                          type="button"
+                        >
+                          <X className="size-4" />
+                          Remove
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </article>
+
+      <article className="billing-card p-5">
+        <div className="flex flex-col gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-[var(--billing-text-primary)]">Adjustments</h3>
+            <p className="mt-1 text-sm text-[var(--billing-text-secondary)]">
+              Apply approved discounts, waivers, fines, deposit adjustments, and billing rules.
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-[var(--billing-text-primary)]">Discount</span>
+              <input
+                className="billing-control"
+                disabled={isLockedInvoice}
+                onChange={(event) => {
+                  setDiscountAmount(Number(event.target.value));
+                  markDirty();
+                }}
+                step="0.01"
+                type="number"
+                value={discountAmount}
+              />
+              <p className="text-xs text-[var(--billing-text-secondary)]">Approved resident discount or plan concession.</p>
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-[var(--billing-text-primary)]">Waiver</span>
+              <input
+                className="billing-control"
+                disabled={isLockedInvoice}
+                onChange={(event) => {
+                  setWaiverAmount(Number(event.target.value));
+                  markDirty();
+                }}
+                step="0.01"
+                type="number"
+                value={waiverAmount}
+              />
+              <p className="text-xs text-[var(--billing-text-secondary)]">Temporary waiver for approved billing relief.</p>
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-[var(--billing-text-primary)]">Fine amount</span>
+              <input
+                className="billing-control"
+                disabled={isLockedInvoice}
+                onChange={(event) => {
+                  setFineAmount(Number(event.target.value));
+                  markDirty();
+                }}
+                step="0.01"
+                type="number"
+                value={fineAmount}
+              />
+              <p className="text-xs text-[var(--billing-text-secondary)]">Late fees, damages, or conduct-related recovery.</p>
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-[var(--billing-text-primary)]">Deposit adjustment</span>
+              <input
+                className={`billing-control${depositAdjustment > selectedResident.depositHeld ? " billing-control-error" : ""}`}
+                disabled={isLockedInvoice}
+                onChange={(event) => {
+                  setDepositAdjustment(Number(event.target.value));
+                  markDirty();
+                }}
+                step="0.01"
+                type="number"
+                value={depositAdjustment}
+              />
+              <p className="text-xs text-[var(--billing-text-secondary)]">
+                Deposit held: {formatCurrency(selectedResident.depositHeld)}.
+              </p>
+            </label>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <button
+              className="billing-toggle text-left"
+              onClick={() => {
+                if (isLockedInvoice) {
+                  return;
+                }
+                setCarryForwardDue((current) => !current);
+                markDirty();
+              }}
+              type="button"
+            >
+              <input checked={carryForwardDue} className="mt-1 size-4" readOnly type="checkbox" />
+              <span>
+                <span className="block text-sm font-medium text-[var(--billing-text-primary)]">
+                  Carry forward previous dues
+                </span>
+                <span className="mt-1 block text-xs text-[var(--billing-text-secondary)]">
+                  Move unpaid resident balances into this invoice.
+                </span>
+              </span>
+            </button>
+
+            <button
+              className="billing-toggle text-left"
+              onClick={() => {
+                if (isLockedInvoice) {
+                  return;
+                }
+                setAllowPartialPayments((current) => !current);
+                markDirty();
+              }}
+              type="button"
+            >
+              <input checked={allowPartialPayments} className="mt-1 size-4" readOnly type="checkbox" />
+              <span>
+                <span className="block text-sm font-medium text-[var(--billing-text-primary)]">Allow partial payments</span>
+                <span className="mt-1 block text-xs text-[var(--billing-text-secondary)]">
+                  Allow the balance to be settled across multiple receipts.
+                </span>
+              </span>
+            </button>
+
+            <button
+              className="billing-toggle text-left"
+              onClick={() => {
+                if (isLockedInvoice) {
+                  return;
+                }
+                setEnableLateFeeAutomation((current) => !current);
+                markDirty();
+              }}
+              type="button"
+            >
+              <input checked={enableLateFeeAutomation} className="mt-1 size-4" readOnly type="checkbox" />
+              <span>
+                <span className="block text-sm font-medium text-[var(--billing-text-primary)]">Late fee automation</span>
+                <span className="mt-1 block text-xs text-[var(--billing-text-secondary)]">
+                  Apply late fees once grace periods expire.
+                </span>
+              </span>
+            </button>
+
+            <button
+              className="billing-toggle text-left"
+              onClick={() => {
+                if (isLockedInvoice) {
+                  return;
+                }
+                setEnableRecurring((current) => !current);
+                markDirty();
+              }}
+              type="button"
+            >
+              <input checked={enableRecurring} className="mt-1 size-4" readOnly type="checkbox" />
+              <span>
+                <span className="block text-sm font-medium text-[var(--billing-text-primary)]">
+                  Recurring invoice generation
+                </span>
+                <span className="mt-1 block text-xs text-[var(--billing-text-secondary)]">
+                  Reuse this invoice setup for scheduled hostel billing cycles.
+                </span>
+              </span>
+            </button>
+
+            <button
+              className="billing-toggle text-left md:col-span-2"
+              onClick={() => {
+                if (isLockedInvoice) {
+                  return;
+                }
+                setEnableProration((current) => !current);
+                markDirty();
+              }}
+              type="button"
+            >
+              <input checked={enableProration} className="mt-1 size-4" readOnly type="checkbox" />
+              <span>
+                <span className="block text-sm font-medium text-[var(--billing-text-primary)]">Prorated billing</span>
+                <span className="mt-1 block text-xs text-[var(--billing-text-secondary)]">
+                  Apply mid-cycle rent logic for check-in and checkout adjustments.
+                </span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </article>
+
+      {invoiceSummaryCard}
+
+      <article className="billing-card p-5">
+        <div className="flex flex-col gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-[var(--billing-text-primary)]">Notes and Description</h3>
+            <p className="mt-1 text-sm text-[var(--billing-text-secondary)]">
+              Add resident-facing billing notes and internal finance remarks.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-[var(--billing-text-primary)]">Billing note</span>
+              <textarea
+                className="billing-control min-h-[100px] resize-y py-3"
+                disabled={isLockedInvoice}
+                onChange={(event) => {
+                  setBillingNote(event.target.value);
+                  markDirty();
+                }}
+                value={billingNote}
+              />
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-[var(--billing-text-primary)]">Invoice remarks</span>
+              <textarea
+                className="billing-control min-h-[90px] resize-y py-3"
+                disabled={isLockedInvoice}
+                onChange={(event) => {
+                  setInvoiceRemarks(event.target.value);
+                  markDirty();
+                }}
+                placeholder="Optional note shown on the invoice."
+                value={invoiceRemarks}
+              />
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-[var(--billing-text-primary)]">Internal note</span>
+              <textarea
+                className="billing-control min-h-[90px] resize-y py-3"
+                disabled={isLockedInvoice}
+                onChange={(event) => {
+                  setInternalNote(event.target.value);
+                  markDirty();
+                }}
+                placeholder="Internal approval or audit note."
+                value={internalNote}
+              />
+            </label>
+          </div>
+        </div>
+      </article>
+    </>
+  );
+
+  const invoicePreviewView = (
+    <>
+      <article className="billing-card billing-card-elevated p-5">
+        <div className="flex items-center gap-2 text-sm font-semibold text-[var(--billing-text-primary)]">
+          <Eye className="size-4" />
+          Invoice Preview
+        </div>
+        <p className="mt-2 text-sm text-[var(--billing-text-secondary)]">
+          {invoiceScope === "bulk"
+            ? `This billing run will prepare ${activeResidents.length} invoices for ${formatCycle(
+                billingCycle,
+              )}, using the current charge template and duplicate protections.`
+            : `${selectedResident.name} will receive ${invoiceType.toLowerCase()} charges dated ${formatDate(
+                invoiceDate,
+              )} with payment terms set to ${paymentTerms.toLowerCase()}.`}
+        </p>
+      </article>
+
+      {invoiceSummaryCard}
+
+      <article className="billing-card p-5">
+        <div className="flex flex-col gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-[var(--billing-text-primary)]">Resident and Invoice Details</h3>
+            <p className="mt-1 text-sm text-[var(--billing-text-secondary)]">
+              Final resident context and billing dates before issuance or download.
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-[16px] border border-[var(--billing-border-subtle)] bg-[var(--color-overlay-soft)] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--billing-text-muted)]">Resident</p>
+              <p className="mt-3 font-medium text-[var(--billing-text-primary)]">{selectedResident.name}</p>
+              <p className="text-sm text-[var(--billing-text-secondary)]">{selectedResident.regId}</p>
+            </div>
+            <div className="rounded-[16px] border border-[var(--billing-border-subtle)] bg-[var(--color-overlay-soft)] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--billing-text-muted)]">Room / Bed</p>
+              <p className="mt-3 font-medium text-[var(--billing-text-primary)]">{roomLabel(selectedResident)}</p>
+              <p className="text-sm text-[var(--billing-text-secondary)]">{locationLabel(selectedResident)}</p>
+            </div>
+            <div className="rounded-[16px] border border-[var(--billing-border-subtle)] bg-[var(--color-overlay-soft)] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--billing-text-muted)]">Billing cycle</p>
+              <p className="mt-3 font-medium text-[var(--billing-text-primary)]">{formatCycle(billingCycle)}</p>
+              <p className="text-sm text-[var(--billing-text-secondary)]">Invoice date {formatDate(invoiceDate)}</p>
+            </div>
+            <div className="rounded-[16px] border border-[var(--billing-border-subtle)] bg-[var(--color-overlay-soft)] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--billing-text-muted)]">Due and reference</p>
+              <p className="mt-3 font-medium text-[var(--billing-text-primary)]">Due {formatDate(dueDate)}</p>
+              <p className="text-sm text-[var(--billing-text-secondary)]">{invoiceReference}</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article className="billing-card p-5">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-semibold text-[var(--billing-text-primary)]">Charge Breakdown</h3>
+              <p className="mt-1 text-sm text-[var(--billing-text-secondary)]">
+                Review all charge rows before issuing or downloading the invoice PDF.
+              </p>
+            </div>
+            <span className="billing-pagination">{lineItems.length} line items</span>
+          </div>
+
+          <div className="space-y-3">
+            {lineItems.map((item) => (
+              <div
+                className="flex flex-col gap-3 rounded-[16px] border border-[var(--billing-border-subtle)] bg-[var(--color-overlay-soft)] p-4 sm:flex-row sm:items-center sm:justify-between"
+                key={item.id}
+              >
+                <div className="space-y-1">
+                  <p className="font-medium text-[var(--billing-text-primary)]">{item.label}</p>
+                  <p className="text-sm text-[var(--billing-text-secondary)]">
+                    {item.category} | Qty {item.quantity} | Rate {formatCurrency(item.rate)}
+                  </p>
+                </div>
+                <span className="billing-value-neutral">{formatCurrency(lineAmount(item))}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </article>
+
+      <article className="billing-card p-5">
+        <div className="flex flex-col gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-[var(--billing-text-primary)]">Notes and Billing Controls</h3>
+            <p className="mt-1 text-sm text-[var(--billing-text-secondary)]">
+              Confirm notes, adjustments, and handling rules before issuance.
+            </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <BillingBadge tone={enableRecurring ? "info" : "warning"}>
+              {enableRecurring ? "Recurring enabled" : "One-time invoice"}
+            </BillingBadge>
+            <BillingBadge tone={enableProration ? "warning" : "success"}>
+              {enableProration ? "Proration applied" : "Full-cycle billing"}
+            </BillingBadge>
+            <BillingBadge tone={carryForwardDue ? "warning" : "success"}>
+              {carryForwardDue ? "Previous dues included" : "Previous dues excluded"}
+            </BillingBadge>
+            <BillingBadge tone={allowPartialPayments ? "info" : "warning"}>
+              {allowPartialPayments ? "Partial payments allowed" : "Full payment required"}
+            </BillingBadge>
+          </div>
+
+          <div className="space-y-3 text-sm text-[var(--billing-text-secondary)]">
+            <p>
+              <span className="font-medium text-[var(--billing-text-primary)]">Billing note:</span> {billingNote || "No billing note added."}
+            </p>
+            <p>
+              <span className="font-medium text-[var(--billing-text-primary)]">Invoice remarks:</span>{" "}
+              {invoiceRemarks || "No resident-facing invoice remarks added."}
+            </p>
+            <p>
+              <span className="font-medium text-[var(--billing-text-primary)]">Internal note:</span>{" "}
+              {internalNote || "No internal finance note added."}
+            </p>
+          </div>
+        </div>
+      </article>
+    </>
+  );
+
   const headerSection = (
     <>
       <header className="billing-card billing-card-elevated p-6">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              <BillingBadge tone="success">Ledger Active</BillingBadge>
-              <BillingBadge tone={overdueAmount > 0 ? "danger" : "success"}>
-                Overdue Amount {formatCurrency(overdueAmount)}
-              </BillingBadge>
-              <BillingBadge tone={pendingInvoices > 0 ? "warning" : "success"}>
-                Pending Invoices {pendingInvoices}
-              </BillingBadge>
-            </div>
             <div className="space-y-2">
               <h1 className="text-3xl font-semibold tracking-tight text-[var(--billing-text-primary)] sm:text-[2.35rem]">
                 Billing &amp; Fee Management
               </h1>
               <p className="max-w-3xl text-base text-[var(--billing-text-secondary)]">
-                Manage payments, invoices, dues, ledger entries, and billing activity.
+                Manage payments, invoices, dues, and resident billing activity.
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <button
-              className="billing-button-primary"
-              onClick={() => {
-                jumpToInvoiceBuilder();
-                recordInvoicePayment();
-              }}
-              type="button"
-            >
+          <div className="flex flex-wrap items-start gap-3 xl:max-w-[460px] xl:justify-end">
+            <button className="billing-button-primary sm:flex-1 xl:flex-none" onClick={openPaymentWorkflow} type="button">
               <Wallet className="size-4" />
               Record Payment
             </button>
             <button
-              className="billing-button-secondary"
+              className="billing-button-secondary sm:flex-1 xl:flex-none"
               onClick={() => {
-                jumpToInvoiceBuilder();
-                setFeedback({ tone: "info", message: "Invoice creation workspace is ready for review and issuance." });
+                openInvoiceDrawer();
+                setFeedback({
+                  tone: "info",
+                  message: "Invoice drawer opened. Complete the draft, preview it, then issue or download the invoice.",
+                });
               }}
               type="button"
             >
               <FileText className="size-4" />
               Generate Invoice
+            </button>
+            <button className="billing-button-ghost sm:flex-1 xl:flex-none" onClick={exportLedger} type="button">
+              <Download className="size-4" />
+              Export Ledger
             </button>
           </div>
         </div>
@@ -1577,7 +2917,7 @@ export default function BillingPage() {
       </section>
 
       <section className="billing-alert" data-tone={overdueAmount > 0 || failedPayments > 0 ? "danger" : "warning"}>
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm font-semibold text-[var(--billing-text-primary)]">
               <AlertTriangle className="size-4" />
@@ -1609,60 +2949,77 @@ export default function BillingPage() {
       </section>
 
       <section className="billing-card p-5">
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_repeat(3,minmax(180px,0.8fr))_auto]">
-          <label className="billing-search xl:col-span-2">
-            <Search className="size-4 shrink-0 text-[var(--billing-text-muted)]" />
-            <input
-              className="min-w-0 flex-1 bg-transparent text-sm text-[var(--billing-text-primary)] outline-none placeholder:text-[var(--billing-text-muted)]"
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Search resident, registration ID, invoice, payment, or reference"
-              value={searchQuery}
-            />
-            {searchQuery ? (
+        <div className="space-y-4">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.8fr)_repeat(3,minmax(170px,0.78fr))]">
+            <label className="billing-search">
+              <Search className="size-4 shrink-0 text-[var(--billing-text-muted)]" />
+              <input
+                className="min-w-0 flex-1 bg-transparent text-sm text-[var(--billing-text-primary)] outline-none placeholder:text-[var(--billing-text-muted)]"
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search resident, registration ID, invoice, payment, or reference"
+                value={searchQuery}
+              />
+              {searchQuery ? (
+                <button
+                  className="billing-button-ghost !min-h-8 !px-2 text-xs"
+                  onClick={() => setSearchQuery("")}
+                  type="button"
+                >
+                  <X className="size-4" />
+                </button>
+              ) : null}
+            </label>
+
+            <select className="billing-control" onChange={(event) => setTypeFilter(event.target.value as TypeFilter)} value={typeFilter}>
+              <option value="all">All Types</option>
+              <option value="Invoice">Invoice</option>
+              <option value="Payment">Payment</option>
+              <option value="Adjustment">Adjustment</option>
+              <option value="Refund">Refund</option>
+            </select>
+
+            <select className="billing-control" onChange={(event) => setStatusFilter(event.target.value as StatusFilter)} value={statusFilter}>
+              <option value="all">All Statuses</option>
+              <option value="Paid">Paid</option>
+              <option value="Pending">Pending</option>
+              <option value="Partially Paid">Partially Paid</option>
+              <option value="Overdue">Overdue</option>
+              <option value="Failed">Failed</option>
+              <option value="Adjusted">Adjusted</option>
+              <option value="Reversed">Reversed</option>
+            </select>
+
+            <select className="billing-control" onChange={(event) => setDateRange(event.target.value as DateRangeFilter)} value={dateRange}>
+              <option value="all">All Dates</option>
+              <option value="this_month">This Month</option>
+              <option value="last_30_days">Last 30 Days</option>
+              <option value="quarter">This Quarter</option>
+            </select>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <button
-                className="billing-button-ghost !min-h-8 !px-2 text-xs"
-                onClick={() => setSearchQuery("")}
+                className="billing-button-secondary"
+                onClick={() => setShowAdvancedFilters((current) => !current)}
                 type="button"
               >
-                <X className="size-4" />
+                <Filter className="size-4" />
+                {showAdvancedFilters ? "Hide Advanced" : "Advanced Filters"}
               </button>
-            ) : null}
-          </label>
 
-          <select className="billing-control" onChange={(event) => setTypeFilter(event.target.value as TypeFilter)} value={typeFilter}>
-            <option value="all">All Types</option>
-            <option value="Invoice">Invoice</option>
-            <option value="Payment">Payment</option>
-            <option value="Adjustment">Adjustment</option>
-            <option value="Refund">Refund</option>
-          </select>
+              {activeFilterCount > 0 ? (
+                <button className="billing-button-ghost" onClick={resetLedgerFilters} type="button">
+                  <RotateCcw className="size-4" />
+                  Reset Filters
+                </button>
+              ) : null}
+            </div>
 
-          <select className="billing-control" onChange={(event) => setStatusFilter(event.target.value as StatusFilter)} value={statusFilter}>
-            <option value="all">All Statuses</option>
-            <option value="Paid">Paid</option>
-            <option value="Pending">Pending</option>
-            <option value="Partially Paid">Partially Paid</option>
-            <option value="Overdue">Overdue</option>
-            <option value="Failed">Failed</option>
-            <option value="Adjusted">Adjusted</option>
-            <option value="Reversed">Reversed</option>
-          </select>
-
-          <select className="billing-control" onChange={(event) => setDateRange(event.target.value as DateRangeFilter)} value={dateRange}>
-            <option value="all">All Dates</option>
-            <option value="this_month">This Month</option>
-            <option value="last_30_days">Last 30 Days</option>
-            <option value="quarter">This Quarter</option>
-          </select>
-
-          <button
-            className="billing-button-secondary"
-            onClick={() => setShowAdvancedFilters((current) => !current)}
-            type="button"
-          >
-            <Filter className="size-4" />
-            Advanced
-          </button>
+            <span className="billing-pagination">
+              {activeFilterCount > 0 ? `${activeFilterCount} active filters` : "Default ledger view"}
+            </span>
+          </div>
         </div>
 
         {showAdvancedFilters ? (
@@ -1723,7 +3080,8 @@ export default function BillingPage() {
     </>
   );
 
-  const invoiceSection = (
+  const invoiceSectionLegacy = null;
+  /*
     <section className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_minmax(360px,0.95fr)]">
       <article className="billing-card p-6" id="billing-invoice-builder">
         <div className="flex flex-col gap-5">
@@ -1825,7 +3183,7 @@ export default function BillingPage() {
               >
                 {residents.map((resident) => (
                   <option key={resident.id} value={resident.id}>
-                    {resident.name} · {resident.regId}
+                    {resident.name} - {resident.regId}
                   </option>
                 ))}
               </select>
@@ -2381,60 +3739,143 @@ export default function BillingPage() {
     </section>
   );
 
+  */
+  void invoiceSectionLegacy;
+
+  const invoiceSection = isInvoiceDrawerOpen ? (
+    <>
+      <button aria-label="Close invoice drawer" className="billing-drawer-backdrop" onClick={closeInvoiceDrawer} type="button" />
+      <aside
+        aria-labelledby="billing-invoice-drawer-title"
+        aria-modal="true"
+        className="billing-drawer-panel"
+        role="dialog"
+      >
+        <div className="billing-drawer-header">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--billing-text-muted)]">
+                  Invoice Workflow
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--billing-text-primary)]" id="billing-invoice-drawer-title">
+                  Create Invoice
+                </h2>
+                <p className="mt-2 text-sm text-[var(--billing-text-secondary)]">
+                  {invoiceScope === "bulk"
+                    ? `Build a billing run for ${activeResidents.length} active residents in ${formatCycle(billingCycle)}.`
+                    : `${selectedResident.name} | ${selectedResident.regId} | ${roomLabel(selectedResident)}`}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <BillingBadge tone={chipToneForInvoiceStatus(displayInvoiceStatus)}>{displayInvoiceStatus}</BillingBadge>
+                <button className="app-modal-close" onClick={closeInvoiceDrawer} type="button">
+                  <X className="size-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className={drawerView === "details" ? "billing-button-primary !min-h-9 !px-4 text-xs" : "billing-button-secondary !min-h-9 !px-4 text-xs"}
+                  onClick={() => setDrawerView("details")}
+                  type="button"
+                >
+                  Details
+                </button>
+                <button
+                  className={drawerView === "preview" ? "billing-button-primary !min-h-9 !px-4 text-xs" : "billing-button-secondary !min-h-9 !px-4 text-xs"}
+                  onClick={() => {
+                    if (!previewOpen) {
+                      previewInvoice();
+                      return;
+                    }
+                    setDrawerView("preview");
+                  }}
+                  type="button"
+                >
+                  Preview
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {unsavedChanges ? (
+                  <span className="billing-pagination">Unsaved changes</span>
+                ) : (
+                  <span className="billing-pagination">Last saved {formatDateTime(lastSavedAt)}</span>
+                )}
+                <button className="billing-button-ghost !min-h-9 !px-3 text-xs" onClick={resetInvoiceDraft} type="button">
+                  <RotateCcw className="size-3.5" />
+                  Reset draft
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="billing-drawer-body">
+          <div className="space-y-4">
+            {drawerView === "details" ? invoiceDetailsView : invoicePreviewView}
+            {invoiceIssuesBlock}
+          </div>
+        </div>
+
+        <div className="billing-drawer-footer">
+          <div className="min-w-[220px] flex-1">
+            <p className="text-sm font-semibold text-[var(--billing-text-primary)]">
+              {unsavedChanges ? "Unsaved invoice changes" : "Invoice draft is in sync"}
+            </p>
+            <p className="text-sm text-[var(--billing-text-secondary)]">
+              {unsavedChanges
+                ? "Save or preview the current invoice before you issue, download, or send it."
+                : `Last saved ${formatDateTime(lastSavedAt)}.`}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap justify-end gap-3">
+            <button className="billing-button-ghost" onClick={closeInvoiceDrawer} type="button">
+              Close
+            </button>
+            <button className="billing-button-ghost" onClick={viewBillingHistory} type="button">
+              <History className="size-4" />
+              View Billing History
+            </button>
+            <button className="billing-button-secondary" disabled={isLockedInvoice} onClick={saveDraft} type="button">
+              <Check className="size-4" />
+              Save Draft
+            </button>
+            <button className="billing-button-secondary" disabled={blockingIssues.length > 0} onClick={previewInvoice} type="button">
+              <Eye className="size-4" />
+              Preview Invoice
+            </button>
+            <button className="billing-button-secondary" onClick={downloadInvoice} type="button">
+              <Download className="size-4" />
+              Download Invoice PDF
+            </button>
+            {hasIssuedInvoice ? (
+              <button className="billing-button-secondary" onClick={sendInvoice} type="button">
+                <Send className="size-4" />
+                Send Invoice
+              </button>
+            ) : null}
+            {canRecordPayment ? (
+              <button className="billing-button-secondary" onClick={recordInvoicePayment} type="button">
+                <CreditCard className="size-4" />
+                Record Payment
+              </button>
+            ) : null}
+            <button className="billing-button-primary" disabled={blockingIssues.length > 0 || isLockedInvoice} onClick={issueInvoice} type="button">
+              <Receipt className="size-4" />
+              Issue Invoice
+            </button>
+          </div>
+        </div>
+      </aside>
+    </>
+  ) : null;
+
   const ledgerSection = (
     <>
-      <section className="billing-action-bar">
-        <div className="min-w-[220px] flex-1">
-          <p className="text-sm font-semibold text-[var(--billing-text-primary)]">
-            {unsavedChanges ? "Unsaved invoice changes" : "Invoice state is up to date"}
-          </p>
-          <p className="text-sm text-[var(--billing-text-secondary)]">
-            {unsavedChanges
-              ? "Review invoice validation, then save or continue through approval and issuance."
-              : `Last saved ${formatDateTime(lastSavedAt)}.`}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          <button className="billing-button-secondary" disabled={isLockedInvoice} onClick={resetInvoiceDraft} type="button">
-            <RotateCcw className="size-4" />
-            Reset changes
-          </button>
-          <button className="billing-button-secondary" disabled={blockingIssues.length > 0} onClick={saveDraft} type="button">
-            <Check className="size-4" />
-            Save Draft
-          </button>
-          <button className="billing-button-secondary" disabled={blockingIssues.length > 0} onClick={previewInvoice} type="button">
-            <Eye className="size-4" />
-            Preview Invoice
-          </button>
-          <button className="billing-button-secondary" disabled={blockingIssues.length > 0 || isLockedInvoice} onClick={approveInvoice} type="button">
-            <CheckCheck className="size-4" />
-            Approve
-          </button>
-          <button className="billing-button-primary" disabled={blockingIssues.length > 0 || displayInvoiceStatus !== "Approved"} onClick={issueInvoice} type="button">
-            <Receipt className="size-4" />
-            Issue Invoice
-          </button>
-          <button className="billing-button-secondary" onClick={sendInvoice} type="button">
-            <Send className="size-4" />
-            Send Invoice
-          </button>
-          <button className="billing-button-secondary" onClick={recordInvoicePayment} type="button">
-            <CreditCard className="size-4" />
-            Record Payment
-          </button>
-          <button className="billing-button-secondary" onClick={downloadInvoice} type="button">
-            <Download className="size-4" />
-            Download PDF
-          </button>
-          <button className="billing-button-ghost" onClick={viewBillingHistory} type="button">
-            <History className="size-4" />
-            View Billing History
-          </button>
-        </div>
-      </section>
-
       {feedback ? (
         <section className="billing-alert" data-tone={feedback.tone === "danger" ? "danger" : "warning"}>
           <div className="flex items-center justify-between gap-4">
@@ -2454,26 +3895,35 @@ export default function BillingPage() {
             </p>
             <h2 className="mt-2 text-2xl font-semibold text-[var(--billing-text-primary)]">Resident payment ledger</h2>
             <p className="mt-2 text-sm text-[var(--billing-text-secondary)]">
-              Review invoice activity, resident-linked charges, receipts, balances, and exception handling in one place.
+              Review resident-linked invoices, payments, balances, and follow-up actions in one place.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <span className="billing-pagination">
               Showing {pageStart}-{pageEnd} of {filteredLedger.length}
             </span>
-            <button className="billing-button-secondary" type="button">
+            <button className="billing-button-secondary" onClick={exportLedger} type="button">
               <Download className="size-4" />
               Export Ledger
-            </button>
-            <button className="billing-button-secondary" type="button">
-              <Landmark className="size-4" />
-              Download Statement
             </button>
           </div>
         </div>
 
-        <div className="mt-5 billing-ledger-wrap">
-          <table className="billing-ledger-table">
+        <div className="mt-5 billing-ledger-wrap billing-ledger-wrap-compact">
+          <table className="billing-ledger-table billing-ledger-table-compact">
+            <colgroup>
+              <col className="w-[10%]" />
+              <col className="w-[16%]" />
+              <col className="w-[10%]" />
+              <col className="w-[6%]" />
+              <col className="w-[8%]" />
+              <col className="w-[7%]" />
+              <col className="w-[6%]" />
+              <col className="w-[7%]" />
+              <col className="w-[8%]" />
+              <col className="w-[8%]" />
+              <col className="w-[14%]" />
+            </colgroup>
             <thead>
               <tr>
                 <th>
@@ -2577,35 +4027,37 @@ export default function BillingPage() {
                   <tr data-overdue={row.status === "Overdue"} key={row.id}>
                     <td>
                       <div className="space-y-1">
-                        <p className="font-medium text-[var(--billing-text-primary)]">{formatDate(row.date)}</p>
-                        <p className="text-xs text-[var(--billing-text-muted)]">{row.description}</p>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="space-y-1">
-                        <p className="font-medium text-[var(--billing-text-primary)]">{row.resident}</p>
-                        <p className="text-xs text-[var(--billing-text-secondary)]">
-                          {row.regId} · {row.note}
+                        <p className="text-sm font-medium leading-5 text-[var(--billing-text-primary)]">{formatDate(row.date)}</p>
+                        <p className="block max-w-[11rem] truncate text-[11px] leading-4 text-[var(--billing-text-muted)]" title={row.description}>
+                          {row.description}
                         </p>
                       </div>
                     </td>
                     <td>
                       <div className="space-y-1">
-                        <p className="font-medium text-[var(--billing-text-primary)]">
+                        <p className="text-sm font-medium leading-5 text-[var(--billing-text-primary)]">{row.resident}</p>
+                        <p className="block max-w-[13rem] truncate text-[11px] leading-4 text-[var(--billing-text-secondary)]" title={`${row.regId} | ${row.note}`}>
+                          {row.regId} | {row.note}
+                        </p>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium leading-5 text-[var(--billing-text-primary)]">
                           {row.room} / {row.bed}
                         </p>
-                        <p className="text-xs text-[var(--billing-text-secondary)]">
-                          {row.hostel} · {row.floor}
+                        <p className="text-[11px] leading-4 text-[var(--billing-text-secondary)]">
+                          {row.hostel} | {row.floor}
                         </p>
                       </div>
                     </td>
                     <td>
-                      <BillingBadge tone={row.type === "Payment" ? "success" : row.type === "Invoice" ? "info" : "warning"}>
+                      <BillingBadge className="billing-chip-compact" tone={row.type === "Payment" ? "success" : row.type === "Invoice" ? "info" : "warning"}>
                         {row.type}
                       </BillingBadge>
                     </td>
                     <td>
-                      <span className="text-sm font-medium text-[var(--billing-text-primary)]">{row.category}</span>
+                      <span className="text-[13px] font-medium leading-5 text-[var(--billing-text-primary)]">{row.category}</span>
                     </td>
                     <td className="text-right">
                       <span className={row.direction === "Credit" ? "billing-value-positive" : "billing-value-neutral"}>
@@ -2613,7 +4065,9 @@ export default function BillingPage() {
                       </span>
                     </td>
                     <td>
-                      <BillingBadge tone={chipToneForDirection(row.direction)}>{row.direction}</BillingBadge>
+                      <BillingBadge className="billing-chip-compact" tone={chipToneForDirection(row.direction)}>
+                        {row.direction}
+                      </BillingBadge>
                     </td>
                     <td className="text-right">
                       <span className={row.balance > 0 ? "billing-value-negative" : "billing-value-neutral"}>
@@ -2621,33 +4075,34 @@ export default function BillingPage() {
                       </span>
                     </td>
                     <td>
-                      <BillingBadge tone={chipToneForLedgerStatus(row.status)}>{row.status}</BillingBadge>
+                      <BillingBadge className="billing-chip-compact" tone={chipToneForLedgerStatus(row.status)}>
+                        {row.status}
+                      </BillingBadge>
                     </td>
                     <td>
                       <div className="space-y-1">
-                        <p className="font-medium text-[var(--billing-text-primary)]">{row.reference}</p>
-                        <p className="text-xs text-[var(--billing-text-muted)]">{row.invoiceType ?? "Resident billing"}</p>
+                        <p className="text-sm font-medium leading-5 text-[var(--billing-text-primary)]">{row.reference}</p>
+                        <p className="text-[11px] leading-4 text-[var(--billing-text-muted)]">{row.invoiceType ?? "Resident billing"}</p>
                       </div>
                     </td>
-                    <td>
-                      <div className="flex flex-wrap justify-end gap-2">
-                        <button className="billing-row-action" type="button">
-                          <Eye className="size-4" />
-                          Details
+                    <td className="align-top">
+                      <div className="flex flex-wrap justify-end gap-1.5">
+                        <button className="billing-row-action billing-row-action-compact" onClick={() => openLedgerInvoice(row)} type="button">
+                          <Eye className="size-3.5" />
+                          View
                         </button>
-                        {row.direction === "Debit" ? (
-                          <button className="billing-row-action" onClick={() => markLedgerRowPaid(row)} type="button">
-                            <Wallet className="size-4" />
-                            Mark Paid
+                        <button className="billing-row-action billing-row-action-compact" onClick={() => downloadLedgerDocument(row)} type="button">
+                          <Download className="size-3.5" />
+                          {row.type === "Invoice" ? "PDF" : "Receipt"}
+                        </button>
+                        {row.direction === "Debit" && row.balance > 0 ? (
+                          <button className="billing-row-action billing-row-action-compact" onClick={() => markLedgerRowPaid(row)} type="button">
+                            <Wallet className="size-3.5" />
+                            Settle
                           </button>
-                        ) : (
-                          <button className="billing-row-action" type="button">
-                            <Download className="size-4" />
-                            Receipt
-                          </button>
-                        )}
+                        ) : null}
                         <button
-                          className="billing-row-action"
+                          className="billing-row-action billing-row-action-compact"
                           data-tone={row.status === "Overdue" || row.status === "Failed" ? "danger" : undefined}
                           onClick={() => {
                             setSearchQuery(row.resident);
@@ -2658,7 +4113,7 @@ export default function BillingPage() {
                           }}
                           type="button"
                         >
-                          <History className="size-4" />
+                          <History className="size-3.5" />
                           History
                         </button>
                       </div>
@@ -2717,6 +4172,22 @@ export default function BillingPage() {
           {ledgerSection}
         </div>
       </section>
+      <ExportColumnModal
+        columns={ledgerExportColumnOptions}
+        confirmLabel="Export Ledger"
+        description="Choose the billing fields that should appear in the Excel file. The export respects your current search, filter, and sort settings."
+        isProcessing={isLedgerExporting}
+        isOpen={isLedgerExportModalOpen}
+        onClose={closeLedgerExportModal}
+        onConfirm={confirmLedgerExport}
+        onReset={resetLedgerExportColumns}
+        onSelectAll={selectAllLedgerExportColumns}
+        onToggleColumn={toggleLedgerExportColumn}
+        rowCount={sortedLedger.length}
+        rowLabel="ledger rows"
+        selectedColumnIds={selectedLedgerExportColumnIds}
+        title="Export billing ledger"
+      />
     </div>
   );
 }

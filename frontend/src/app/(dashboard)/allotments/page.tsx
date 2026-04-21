@@ -4,6 +4,7 @@ import {
   ArrowRightLeft,
   BedSingle,
   ChevronRight,
+  Download,
   DoorOpen,
   Eye,
   FilterX,
@@ -13,7 +14,10 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
-import { useDeferredValue, useState } from "react";
+import { useDeferredValue, useState, type KeyboardEvent } from "react";
+
+import { ExportColumnModal } from "@/components/ui/export-column-modal";
+import { exportWorkbookToExcel, type ExportColumnDefinition } from "@/lib/export";
 
 type AllocationStatus = "active" | "reserved" | "vacated";
 type BedStatus = "available" | "active" | "reserved" | "maintenance";
@@ -27,6 +31,8 @@ type BedRecord = {
   bed: string;
   maintenance?: boolean;
 };
+
+type BedSelection = Pick<BedRecord, "hostel" | "floor" | "room" | "bed">;
 
 type Allocation = {
   id: number;
@@ -76,6 +82,15 @@ const seedAllocations: Allocation[] = [
 
 const FAR_END = "2099-12-31";
 const defaultOperationalBed = beds.find((item) => !item.maintenance) ?? beds[0];
+
+function selectionFromBed(item: BedRecord): BedSelection {
+  return {
+    hostel: item.hostel,
+    floor: item.floor,
+    room: item.room,
+    bed: item.bed,
+  };
+}
 
 function parseDateOnly(value: string) {
   const [datePart] = value.split("T");
@@ -228,6 +243,18 @@ function statusMeta(status: AllocationStatus, isConflicted: boolean) {
   };
 }
 
+function allocationStatusLabel(status: AllocationStatus) {
+  if (status === "active") {
+    return "Active";
+  }
+
+  if (status === "reserved") {
+    return "Reserved";
+  }
+
+  return "Completed";
+}
+
 function SectionBadge({ label, tone }: { label: string; tone: BadgeTone }) {
   return (
     <span className="allotment-badge" data-tone={tone}>
@@ -235,6 +262,136 @@ function SectionBadge({ label, tone }: { label: string; tone: BadgeTone }) {
     </span>
   );
 }
+
+function buildAllocationExportColumns(conflictAllocationIds: Set<number>): ExportColumnDefinition<Allocation>[] {
+  return [
+    {
+      id: "resident",
+      label: "Resident",
+      description: "Allocation sheet: resident full name.",
+      width: 22,
+      getValue: (row) => row.resident,
+    },
+    {
+      id: "registration_id",
+      label: "Registration ID",
+      description: "Allocation sheet: resident registration code.",
+      width: 18,
+      getValue: (row) => row.reg,
+    },
+    {
+      id: "hostel",
+      label: "Hostel",
+      description: "Allocation sheet: hostel or block name.",
+      width: 18,
+      getValue: (row) => row.hostel,
+    },
+    {
+      id: "floor",
+      label: "Floor",
+      description: "Allocation sheet: floor reference.",
+      width: 14,
+      getValue: (row) => `Floor ${row.floor}`,
+    },
+    {
+      id: "room",
+      label: "Room",
+      description: "Allocation sheet: room code.",
+      width: 14,
+      getValue: (row) => row.room,
+    },
+    {
+      id: "bed",
+      label: "Bed",
+      description: "Allocation sheet: bed label within the room.",
+      width: 12,
+      getValue: (row) => `Bed ${row.bed}`,
+    },
+    {
+      id: "status",
+      label: "Status",
+      description: "Allocation sheet: allocation lifecycle status.",
+      width: 14,
+      getValue: (row) => allocationStatusLabel(row.status),
+    },
+    {
+      id: "conflict_flag",
+      label: "Conflict Flag",
+      description: "Allocation sheet: indicates overlapping or conflicted records.",
+      kind: "boolean",
+      width: 14,
+      getValue: (row) => conflictAllocationIds.has(row.id),
+    },
+    {
+      id: "start_date",
+      label: "Start Date",
+      description: "Allocation sheet: allocation start date.",
+      kind: "date",
+      width: 16,
+      getValue: (row) => row.start,
+    },
+    {
+      id: "end_date",
+      label: "End Date",
+      description: "Allocation sheet: allocation end or checkout date.",
+      kind: "date",
+      width: 16,
+      getValue: (row) => row.end,
+    },
+  ];
+}
+
+const CONFLICT_EXPORT_COLUMNS: ExportColumnDefinition<Conflict>[] = [
+  {
+    id: "conflict_type",
+    label: "Conflict Type",
+    description: "Conflicts sheet: detected issue category.",
+    width: 20,
+    getValue: (row) => row.type,
+  },
+  {
+    id: "conflict_room",
+    label: "Room",
+    description: "Conflicts sheet: affected room code.",
+    width: 14,
+    getValue: (row) => row.room,
+  },
+  {
+    id: "conflict_bed",
+    label: "Bed",
+    description: "Conflicts sheet: affected bed label.",
+    width: 12,
+    getValue: (row) => `Bed ${row.bed}`,
+  },
+  {
+    id: "conflict_summary",
+    label: "Summary",
+    description: "Conflicts sheet: operational issue summary.",
+    width: 38,
+    getValue: (row) => row.summary,
+  },
+  {
+    id: "conflict_residents",
+    label: "Residents",
+    description: "Conflicts sheet: residents involved in the issue.",
+    width: 30,
+    getValue: (row) => row.residents.join(", "),
+  },
+  {
+    id: "conflict_regs",
+    label: "Registration IDs",
+    description: "Conflicts sheet: registration references involved in the issue.",
+    width: 28,
+    getValue: (row) => row.regs.join(" / "),
+  },
+  {
+    id: "conflict_allocation_ids",
+    label: "Allocation IDs",
+    description: "Conflicts sheet: linked allocation record IDs.",
+    width: 22,
+    getValue: (row) => row.allocationIds.join(", "),
+  },
+];
 
 export default function AllotmentsPage() {
   const todayIso = toIso(new Date());
@@ -249,19 +406,23 @@ export default function AllotmentsPage() {
   const [selectedAllocationId, setSelectedAllocationId] = useState<number | null>(seedAllocations[0]?.id ?? null);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [selectedAllocationExportColumnIds, setSelectedAllocationExportColumnIds] = useState<string[]>(
+    buildAllocationExportColumns(new Set())
+      .filter((column) => column.defaultSelected !== false)
+      .map((column) => column.id),
+  );
   const [newForm, setNewForm] = useState({
     resident: "",
     reg: "",
-    room: defaultOperationalBed.room,
-    bed: defaultOperationalBed.bed,
+    ...selectionFromBed(defaultOperationalBed),
     start: todayIso,
     end: "",
     status: "active" as AllocationStatus,
   });
   const [transferForm, setTransferForm] = useState({
     sourceId: seedAllocations.find((row) => row.status !== "vacated")?.id ?? 0,
-    room: defaultOperationalBed.room,
-    bed: defaultOperationalBed.bed,
+    ...selectionFromBed(defaultOperationalBed),
     date: todayIso,
   });
   const [checkoutForm, setCheckoutForm] = useState({
@@ -281,6 +442,12 @@ export default function AllotmentsPage() {
   const conflicts = detectConflicts(rows);
   const conflictAllocationIds = new Set(conflicts.flatMap((item) => item.allocationIds));
   const selectedAllocation = rows.find((row) => row.id === selectedAllocationId) ?? null;
+  const allocationExportColumns = buildAllocationExportColumns(conflictAllocationIds);
+  const allocationExportColumnOptions = allocationExportColumns.map(({ id, label, description }) => ({
+    id,
+    label,
+    description,
+  }));
 
   const hostels = Array.from(new Set(beds.map((item) => item.hostel)));
   const floors = Array.from(new Set(beds.filter((item) => hostel === "all" || item.hostel === hostel).map((item) => item.floor)));
@@ -321,14 +488,108 @@ export default function AllotmentsPage() {
     setError(null);
   }
 
-  function firstUsableBed(excludedKey?: string) {
-    return beds.find((item) => !item.maintenance && !lockedBeds[bedKey(item.room, item.bed)] && bedKey(item.room, item.bed) !== excludedKey) ?? defaultOperationalBed;
+  function candidateBeds(excludedKey?: string) {
+    const available = beds.filter(
+      (item) => !item.maintenance && !lockedBeds[bedKey(item.room, item.bed)] && bedKey(item.room, item.bed) !== excludedKey,
+    );
+
+    if (available.length > 0) {
+      return available;
+    }
+
+    return beds.filter((item) => !item.maintenance && bedKey(item.room, item.bed) !== excludedKey);
   }
 
-  function selectableBedsForRoom(roomCode: string, excludedKey?: string) {
-    return beds.filter(
-      (item) => item.room === roomCode && !item.maintenance && !lockedBeds[bedKey(item.room, item.bed)] && bedKey(item.room, item.bed) !== excludedKey,
+  function firstUsableBed(excludedKey?: string) {
+    return candidateBeds(excludedKey)[0] ?? defaultOperationalBed;
+  }
+
+  function selectableHostels(excludedKey?: string) {
+    return Array.from(new Set(candidateBeds(excludedKey).map((item) => item.hostel)));
+  }
+
+  function selectableFloorsForHostel(hostelCode: string, excludedKey?: string) {
+    return Array.from(new Set(candidateBeds(excludedKey).filter((item) => item.hostel === hostelCode).map((item) => item.floor)));
+  }
+
+  function selectableRoomsForFloor(hostelCode: string, floorCode: string, excludedKey?: string) {
+    return Array.from(
+      new Set(candidateBeds(excludedKey).filter((item) => item.hostel === hostelCode && item.floor === floorCode).map((item) => item.room)),
     );
+  }
+
+  function selectableBedsForSelection(hostelCode: string, floorCode: string, roomCode: string, excludedKey?: string) {
+    return candidateBeds(excludedKey).filter(
+      (item) => item.hostel === hostelCode && item.floor === floorCode && item.room === roomCode,
+    );
+  }
+
+  function normalizeBedSelection(selection: Partial<BedSelection>, excludedKey?: string): BedSelection {
+    const options = candidateBeds(excludedKey);
+    const fallback = options[0] ?? defaultOperationalBed;
+
+    const hostelCode =
+      selection.hostel && options.some((item) => item.hostel === selection.hostel) ? selection.hostel : fallback.hostel;
+    const hostelOptions = options.filter((item) => item.hostel === hostelCode);
+
+    const floorCode =
+      selection.floor && hostelOptions.some((item) => item.floor === selection.floor)
+        ? selection.floor
+        : (hostelOptions[0] ?? fallback).floor;
+    const floorOptions = hostelOptions.filter((item) => item.floor === floorCode);
+
+    const roomCode =
+      selection.room && floorOptions.some((item) => item.room === selection.room)
+        ? selection.room
+        : (floorOptions[0] ?? hostelOptions[0] ?? fallback).room;
+    const roomOptions = floorOptions.filter((item) => item.room === roomCode);
+
+    const bedCode =
+      selection.bed && roomOptions.some((item) => item.bed === selection.bed)
+        ? selection.bed
+        : (roomOptions[0] ?? floorOptions[0] ?? hostelOptions[0] ?? fallback).bed;
+
+    return {
+      hostel: hostelCode,
+      floor: floorCode,
+      room: roomCode,
+      bed: bedCode,
+    };
+  }
+
+  function syncNewFormSelection(selection: Partial<BedSelection>) {
+    setNewForm((current) => ({
+      ...current,
+      ...normalizeBedSelection(
+        {
+          hostel: current.hostel,
+          floor: current.floor,
+          room: current.room,
+          bed: current.bed,
+          ...selection,
+        },
+      ),
+    }));
+  }
+
+  function syncTransferFormSelection(selection: Partial<BedSelection>, sourceId = transferForm.sourceId) {
+    const source = rows.find((row) => row.id === sourceId && row.status !== "vacated");
+    const excludedKey = source ? bedKey(source.room, source.bed) : undefined;
+
+    setTransferForm((current) => ({
+      ...current,
+      sourceId,
+      ...normalizeBedSelection(
+        {
+          hostel: current.hostel,
+          floor: current.floor,
+          room: current.room,
+          bed: current.bed,
+          ...selection,
+        },
+        excludedKey,
+      ),
+    }));
   }
 
   function clearFilters() {
@@ -353,8 +614,7 @@ export default function AllotmentsPage() {
     setNewForm({
       resident: "",
       reg: "",
-      room: candidate.room,
-      bed: candidate.bed,
+      ...selectionFromBed(candidate),
       start: todayIso,
       end: "",
       status: "active",
@@ -370,8 +630,7 @@ export default function AllotmentsPage() {
       setSelectedAllocationId(source.id);
       setTransferForm({
         sourceId: source.id,
-        room: candidate.room,
-        bed: candidate.bed,
+        ...selectionFromBed(candidate),
         date: todayIso,
       });
     }
@@ -414,6 +673,138 @@ export default function AllotmentsPage() {
     setWorkflow(null);
   }
 
+  function openExportModal() {
+    if (filteredRows.length === 0) {
+      setNotice("No filtered allocations are available to export.");
+      setError(null);
+      return;
+    }
+
+    setIsExportModalOpen(true);
+  }
+
+  function toggleAllocationExportColumn(columnId: string) {
+    setSelectedAllocationExportColumnIds((current) =>
+      current.includes(columnId) ? current.filter((item) => item !== columnId) : [...current, columnId],
+    );
+  }
+
+  function resetAllocationExportColumns() {
+    setSelectedAllocationExportColumnIds(
+      allocationExportColumns.filter((column) => column.defaultSelected !== false).map((column) => column.id),
+    );
+  }
+
+  function selectAllAllocationExportColumns() {
+    setSelectedAllocationExportColumnIds(allocationExportColumns.map((column) => column.id));
+  }
+
+  function confirmAllocationExport() {
+    const selectedColumns = allocationExportColumns.filter((column) =>
+      selectedAllocationExportColumnIds.includes(column.id),
+    );
+
+    if (selectedColumns.length === 0) {
+      setError("Select at least one allocation column before exporting.");
+      setNotice(null);
+      return;
+    }
+
+    exportWorkbookToExcel({
+      fileName: `allocation-workbook-${new Date().toISOString().slice(0, 10)}`,
+      sheets: [
+        {
+          filters: [
+            { label: "Search", value: query.trim() || "All allocations" },
+            { label: "Hostel Filter", value: hostel === "all" ? "All hostels" : hostel },
+            { label: "Floor Filter", value: floor === "all" ? "All floors" : `Floor ${floor}` },
+            { label: "Room Filter", value: room === "all" ? "All rooms" : room },
+            { label: "Status Filter", value: status === "all" ? "All statuses" : allocationStatusLabel(status as AllocationStatus) },
+          ],
+          sheetName: "Overview",
+          subtitle: "Operational allocation workbook with filtered resident assignments and conflict coverage.",
+          summary: [
+            { kind: "number", label: "Filtered Allocations", value: filteredRows.length },
+            {
+              helper: "Currently occupied and active resident stays.",
+              kind: "number",
+              label: "Active Allocations",
+              value: filteredRows.filter((row) => row.status === "active").length,
+            },
+            {
+              helper: "Upcoming reserved or held allocations.",
+              kind: "number",
+              label: "Reserved Allocations",
+              value: filteredRows.filter((row) => row.status === "reserved").length,
+            },
+            {
+              helper: "Completed or vacated records in the current filtered set.",
+              kind: "number",
+              label: "Completed Allocations",
+              value: filteredRows.filter((row) => row.status === "vacated").length,
+            },
+            {
+              helper: "Detected overlapping or duplicate live allocation conflicts.",
+              kind: "number",
+              label: "Open Conflicts",
+              value: conflicts.length,
+            },
+            {
+              helper: "Beds currently ready for new allocation activity.",
+              kind: "number",
+              label: "Available Beds",
+              value: availableBeds,
+            },
+          ],
+          title: "Allotment Workbook Overview",
+        },
+        {
+          columns: selectedColumns,
+          filters: [
+            { label: "Search", value: query.trim() || "All allocations" },
+            { label: "Hostel Filter", value: hostel === "all" ? "All hostels" : hostel },
+            { label: "Floor Filter", value: floor === "all" ? "All floors" : `Floor ${floor}` },
+            { label: "Room Filter", value: room === "all" ? "All rooms" : room },
+            { label: "Status Filter", value: status === "all" ? "All statuses" : allocationStatusLabel(status as AllocationStatus) },
+          ],
+          rows: filteredRows,
+          sheetName: "Allocations",
+          subtitle: "Filtered allocation records prepared for management review and operational follow-up.",
+          summary: [
+            { kind: "number", label: "Exported Allocations", value: filteredRows.length },
+            { kind: "number", label: "Conflict-Flagged Rows", value: filteredRows.filter((row) => conflictAllocationIds.has(row.id)).length },
+          ],
+          title: "Allocation Records",
+        },
+        {
+          columns: CONFLICT_EXPORT_COLUMNS,
+          rows: conflicts,
+          sheetName: "Conflicts",
+          subtitle: "Conflict queue snapshot generated from the live allotment board.",
+          summary: [
+            { kind: "number", label: "Conflict Count", value: conflicts.length },
+          ],
+          title: "Allocation Conflicts",
+        },
+      ],
+      subject: "Hostel room allotment export",
+      title: "Allotment Workbook",
+    });
+
+    setNotice(
+      `Allocation Excel exported successfully with ${filteredRows.length} filtered records and ${selectedColumns.length} selected columns.`,
+    );
+    setError(null);
+    setIsExportModalOpen(false);
+  }
+
+  function handleAllocationKeyDown(event: KeyboardEvent<HTMLElement>, allocationId: number) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      viewAllocation(allocationId);
+    }
+  }
+
   function createAllocation() {
     resetFeedback();
 
@@ -427,7 +818,13 @@ export default function AllotmentsPage() {
       return;
     }
 
-    const target = beds.find((item) => item.room === newForm.room && item.bed === newForm.bed);
+    const target = beds.find(
+      (item) =>
+        item.hostel === newForm.hostel &&
+        item.floor === newForm.floor &&
+        item.room === newForm.room &&
+        item.bed === newForm.bed,
+    );
     if (!target) {
       setError("Select a valid room and bed.");
       return;
@@ -483,7 +880,13 @@ export default function AllotmentsPage() {
       return;
     }
 
-    const target = beds.find((item) => item.room === transferForm.room && item.bed === transferForm.bed);
+    const target = beds.find(
+      (item) =>
+        item.hostel === transferForm.hostel &&
+        item.floor === transferForm.floor &&
+        item.room === transferForm.room &&
+        item.bed === transferForm.bed,
+    );
     if (!target) {
       setError("Select a valid destination bed.");
       return;
@@ -619,6 +1022,19 @@ export default function AllotmentsPage() {
     viewAllocation(targetId);
   }
 
+  const transferSource = rows.find((row) => row.id === transferForm.sourceId && row.status !== "vacated") ?? null;
+  const transferExcludedKey = transferSource ? bedKey(transferSource.room, transferSource.bed) : undefined;
+
+  const newHostelOptions = selectableHostels();
+  const newFloorOptions = selectableFloorsForHostel(newForm.hostel);
+  const newRoomOptions = selectableRoomsForFloor(newForm.hostel, newForm.floor);
+  const newBedOptions = selectableBedsForSelection(newForm.hostel, newForm.floor, newForm.room);
+
+  const transferHostelOptions = selectableHostels(transferExcludedKey);
+  const transferFloorOptions = selectableFloorsForHostel(transferForm.hostel, transferExcludedKey);
+  const transferRoomOptions = selectableRoomsForFloor(transferForm.hostel, transferForm.floor, transferExcludedKey);
+  const transferBedOptions = selectableBedsForSelection(transferForm.hostel, transferForm.floor, transferForm.room, transferExcludedKey);
+
   const activeShortcutLabel =
     workflow === "new" ? "New Allocation" : workflow === "transfer" ? "Transfer Resident" : workflow === "checkout" ? "Checkout Resident" : workflow === "edit" ? "Edit Allocation" : "Quick Actions";
 
@@ -655,16 +1071,20 @@ export default function AllotmentsPage() {
             </label>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row xl:justify-end">
-            <button type="button" className="allotment-button-primary" onClick={openNewAllocation}>
+          <div className="flex flex-wrap items-start gap-3 xl:max-w-[420px] xl:justify-end">
+            <button type="button" className="allotment-button-secondary sm:flex-1 xl:flex-none" onClick={openExportModal}>
+              <Download className="h-4 w-4" />
+              Export Excel
+            </button>
+            <button type="button" className="allotment-button-primary sm:flex-1 xl:flex-none" onClick={openNewAllocation}>
               <Plus className="h-4 w-4" />
               New Allocation
             </button>
-            <button type="button" className="allotment-button-secondary" onClick={() => openTransferWorkflow()}>
+            <button type="button" className="allotment-button-secondary sm:flex-1 xl:flex-none" onClick={() => openTransferWorkflow()}>
               <ArrowRightLeft className="h-4 w-4" />
               Transfer Resident
             </button>
-            <button type="button" className="allotment-button-danger" onClick={() => openCheckoutWorkflow()}>
+            <button type="button" className="allotment-button-danger sm:flex-1 xl:flex-none" onClick={() => openCheckoutWorkflow()}>
               <DoorOpen className="h-4 w-4" />
               Checkout Resident
             </button>
@@ -742,7 +1162,7 @@ export default function AllotmentsPage() {
             </label>
 
             <div className="flex items-end justify-start xl:justify-end">
-              <button type="button" className="allotment-button-secondary" onClick={clearFilters}>
+              <button type="button" className="allotment-button-secondary w-full sm:w-auto" onClick={clearFilters}>
                 <FilterX className="h-4 w-4" />
                 Clear filters
               </button>
@@ -751,9 +1171,9 @@ export default function AllotmentsPage() {
         </div>
       </section>
 
-      <div className="grid gap-6 2xl:grid-cols-[minmax(0,1.55fr)_minmax(360px,0.95fr)]">
-        <section className="allotment-card p-5 sm:p-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="grid items-start gap-6 2xl:grid-cols-[minmax(0,1.72fr)_minmax(340px,0.88fr)]">
+        <section className="allotment-card self-start p-5 sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h2 className="text-xl font-semibold tracking-[-0.02em] text-[var(--allotment-text-primary)]">Active Allocations</h2>
               <p className="mt-1 text-sm text-[var(--allotment-text-secondary)]">
@@ -769,12 +1189,18 @@ export default function AllotmentsPage() {
 
           <div className="allotment-table-wrap mt-5 hidden xl:block">
             <table className="allotment-table">
+              <colgroup>
+                <col className="w-[24%]" />
+                <col className="w-[24%]" />
+                <col className="w-[14%]" />
+                <col className="w-[12%]" />
+                <col className="w-[12%]" />
+                <col className="w-[14%]" />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Resident</th>
-                  <th>Reg ID</th>
-                  <th>Hostel / Floor</th>
-                  <th>Room / Bed</th>
+                  <th>Allocation</th>
                   <th>Status</th>
                   <th>Start Date</th>
                   <th>End Date</th>
@@ -786,26 +1212,29 @@ export default function AllotmentsPage() {
                   const meta = statusMeta(row.status, conflictAllocationIds.has(row.id));
 
                   return (
-                    <tr key={row.id} data-selected={selectedAllocationId === row.id} data-conflict={conflictAllocationIds.has(row.id)}>
+                    <tr
+                      key={row.id}
+                      className="allotment-table-row"
+                      data-clickable="true"
+                      data-selected={selectedAllocationId === row.id}
+                      data-conflict={conflictAllocationIds.has(row.id)}
+                      onClick={() => viewAllocation(row.id)}
+                      onKeyDown={(event) => handleAllocationKeyDown(event, row.id)}
+                      tabIndex={0}
+                      aria-selected={selectedAllocationId === row.id}
+                    >
                       <td>
                         <div className="space-y-1">
                           <p className="font-semibold text-[var(--allotment-text-primary)]">{row.resident}</p>
-                          <p className="text-xs text-[var(--allotment-text-muted)]">{row.hostel}</p>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="font-medium text-[var(--allotment-text-primary)]">{row.reg}</span>
-                      </td>
-                      <td>
-                        <div className="space-y-1">
-                          <p className="text-sm text-[var(--allotment-text-primary)]">{row.hostel}</p>
-                          <p className="text-xs text-[var(--allotment-text-muted)]">Floor {row.floor}</p>
+                          <p className="text-xs text-[var(--allotment-text-muted)]">{row.reg}</p>
                         </div>
                       </td>
                       <td>
                         <div className="space-y-1">
                           <p className="font-semibold text-[var(--allotment-text-primary)]">{row.room}</p>
-                          <p className="text-xs text-[var(--allotment-text-muted)]">Bed {row.bed}</p>
+                          <p className="text-xs text-[var(--allotment-text-muted)]">
+                            Bed {row.bed} - {row.hostel}, Floor {row.floor}
+                          </p>
                         </div>
                       </td>
                       <td>
@@ -816,24 +1245,53 @@ export default function AllotmentsPage() {
                       </td>
                       <td className="text-[var(--allotment-text-primary)]">{formatDate(row.start)}</td>
                       <td className="text-[var(--allotment-text-primary)]">{formatDate(row.end)}</td>
-                      <td>
+                      <td className="align-top">
                         <div className="flex flex-wrap justify-end gap-2">
-                          <button type="button" className="allotment-inline-action" onClick={() => viewAllocation(row.id)}>
+                          <button
+                            type="button"
+                            className="allotment-inline-action"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              viewAllocation(row.id);
+                            }}
+                          >
                             <Eye className="h-3.5 w-3.5" />
                             View
                           </button>
-                          <button type="button" className="allotment-inline-action" onClick={() => openEditWorkflow(row.id)}>
+                          <button
+                            type="button"
+                            className="allotment-inline-action"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              openEditWorkflow(row.id);
+                            }}
+                          >
                             <Pencil className="h-3.5 w-3.5" />
                             Edit
                           </button>
                           {row.status !== "vacated" ? (
-                            <button type="button" className="allotment-inline-action" onClick={() => openTransferWorkflow(row.id)}>
+                            <button
+                              type="button"
+                              className="allotment-inline-action"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openTransferWorkflow(row.id);
+                              }}
+                            >
                               <ArrowRightLeft className="h-3.5 w-3.5" />
                               Transfer
                             </button>
                           ) : null}
                           {row.status === "active" ? (
-                            <button type="button" className="allotment-inline-action" data-tone="danger" onClick={() => openCheckoutWorkflow(row.id)}>
+                            <button
+                              type="button"
+                              className="allotment-inline-action"
+                              data-tone="danger"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openCheckoutWorkflow(row.id);
+                              }}
+                            >
                               <DoorOpen className="h-3.5 w-3.5" />
                               Checkout
                             </button>
@@ -852,7 +1310,15 @@ export default function AllotmentsPage() {
               const meta = statusMeta(row.status, conflictAllocationIds.has(row.id));
 
               return (
-                <article key={row.id} className="allotment-card p-4">
+                <article
+                  key={row.id}
+                  className="allotment-card allotment-selectable-card p-4"
+                  data-selected={selectedAllocationId === row.id}
+                  data-conflict={conflictAllocationIds.has(row.id)}
+                  onClick={() => viewAllocation(row.id)}
+                  onKeyDown={(event) => handleAllocationKeyDown(event, row.id)}
+                  tabIndex={0}
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-base font-semibold text-[var(--allotment-text-primary)]">{row.resident}</p>
@@ -871,7 +1337,7 @@ export default function AllotmentsPage() {
                     <div>
                       <p className="text-xs uppercase tracking-[0.16em] text-[var(--allotment-text-muted)]">Hostel / Floor</p>
                       <p className="mt-1 font-medium text-[var(--allotment-text-primary)]">
-                        {row.hostel} · Floor {row.floor}
+                        {row.hostel} - Floor {row.floor}
                       </p>
                     </div>
                     <div>
@@ -885,22 +1351,51 @@ export default function AllotmentsPage() {
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <button type="button" className="allotment-inline-action" onClick={() => viewAllocation(row.id)}>
+                    <button
+                      type="button"
+                      className="allotment-inline-action"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        viewAllocation(row.id);
+                      }}
+                    >
                       <Eye className="h-3.5 w-3.5" />
                       View Allocation
                     </button>
-                    <button type="button" className="allotment-inline-action" onClick={() => openEditWorkflow(row.id)}>
+                    <button
+                      type="button"
+                      className="allotment-inline-action"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        openEditWorkflow(row.id);
+                      }}
+                    >
                       <Pencil className="h-3.5 w-3.5" />
                       Edit
                     </button>
                     {row.status !== "vacated" ? (
-                      <button type="button" className="allotment-inline-action" onClick={() => openTransferWorkflow(row.id)}>
+                      <button
+                        type="button"
+                        className="allotment-inline-action"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openTransferWorkflow(row.id);
+                        }}
+                      >
                         <ArrowRightLeft className="h-3.5 w-3.5" />
                         Transfer
                       </button>
                     ) : null}
                     {row.status === "active" ? (
-                      <button type="button" className="allotment-inline-action" data-tone="danger" onClick={() => openCheckoutWorkflow(row.id)}>
+                      <button
+                        type="button"
+                        className="allotment-inline-action"
+                        data-tone="danger"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openCheckoutWorkflow(row.id);
+                        }}
+                      >
                         <DoorOpen className="h-3.5 w-3.5" />
                         Checkout
                       </button>
@@ -912,9 +1407,9 @@ export default function AllotmentsPage() {
           </div>
         </section>
 
-        <aside className="space-y-5">
+        <aside className="space-y-5 self-start">
           <section className="allotment-card p-5">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h2 className="text-xl font-semibold tracking-[-0.02em] text-[var(--allotment-text-primary)]">Quick Actions</h2>
                 <p className="mt-1 text-sm leading-6 text-[var(--allotment-text-secondary)]">
@@ -1021,28 +1516,46 @@ export default function AllotmentsPage() {
                     placeholder="Registration ID"
                     className="allotment-control"
                   />
-                  <select
-                    value={newForm.room}
-                    onChange={(event) => {
-                      const nextRoom = event.target.value;
-                      const nextBed = selectableBedsForRoom(nextRoom)[0]?.bed ?? "A";
-                      setNewForm((current) => ({ ...current, room: nextRoom, bed: nextBed }));
-                    }}
-                    className="allotment-control"
-                  >
-                    {Array.from(new Set(beds.filter((item) => !item.maintenance).map((item) => item.room))).map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                  <select value={newForm.bed} onChange={(event) => setNewForm((current) => ({ ...current, bed: event.target.value }))} className="allotment-control">
-                    {selectableBedsForRoom(newForm.room).map((option) => (
-                      <option key={option.bed} value={option.bed}>
-                        Bed {option.bed}
-                      </option>
-                    ))}
-                  </select>
+                  <label className="space-y-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--allotment-text-muted)]">Hostel</span>
+                    <select value={newForm.hostel} onChange={(event) => syncNewFormSelection({ hostel: event.target.value })} className="allotment-control">
+                      {newHostelOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="space-y-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--allotment-text-muted)]">Floor</span>
+                    <select value={newForm.floor} onChange={(event) => syncNewFormSelection({ floor: event.target.value })} className="allotment-control">
+                      {newFloorOptions.map((option) => (
+                        <option key={option} value={option}>
+                          Floor {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="space-y-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--allotment-text-muted)]">Room</span>
+                    <select value={newForm.room} onChange={(event) => syncNewFormSelection({ room: event.target.value })} className="allotment-control">
+                      {newRoomOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="space-y-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--allotment-text-muted)]">Bed</span>
+                    <select value={newForm.bed} onChange={(event) => syncNewFormSelection({ bed: event.target.value })} className="allotment-control">
+                      {newBedOptions.map((option) => (
+                        <option key={option.bed} value={option.bed}>
+                          Bed {option.bed}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                   <input type="date" value={newForm.start} onChange={(event) => setNewForm((current) => ({ ...current, start: event.target.value }))} className="allotment-control" />
                   <input type="date" value={newForm.end} onChange={(event) => setNewForm((current) => ({ ...current, end: event.target.value }))} className="allotment-control" />
                   <select value={newForm.status} onChange={(event) => setNewForm((current) => ({ ...current, status: event.target.value as AllocationStatus }))} className="allotment-control sm:col-span-2">
@@ -1050,6 +1563,9 @@ export default function AllotmentsPage() {
                     <option value="reserved">Reserved allocation</option>
                   </select>
                 </div>
+                <p className="text-xs leading-5 text-[var(--allotment-text-muted)]">
+                  Selected location: {newForm.hostel}, Floor {newForm.floor}, Room {newForm.room}, Bed {newForm.bed}
+                </p>
                 <button type="button" className="allotment-button-primary w-full" onClick={createAllocation}>
                   <BedSingle className="h-4 w-4" />
                   Confirm Allocation
@@ -1060,52 +1576,91 @@ export default function AllotmentsPage() {
             {workflow === "transfer" ? (
               <div className="mt-4 space-y-3">
                 <h3 className="text-base font-semibold text-[var(--allotment-text-primary)]">Transfer Resident</h3>
-                <select value={transferForm.sourceId} onChange={(event) => setTransferForm((current) => ({ ...current, sourceId: Number(event.target.value) }))} className="allotment-control">
-                  <option value={0}>Select source allocation</option>
-                  {rows
-                    .filter((row) => row.status !== "vacated")
-                    .map((row) => (
-                      <option key={row.id} value={row.id}>
-                        {row.resident} ({row.reg}) · {row.room} Bed {row.bed}
-                      </option>
-                    ))}
-                </select>
+                <label className="space-y-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--allotment-text-muted)]">Source Allocation</span>
+                  <select value={transferForm.sourceId} onChange={(event) => syncTransferFormSelection({}, Number(event.target.value))} className="allotment-control">
+                    <option value={0}>Select source allocation</option>
+                    {rows
+                      .filter((row) => row.status !== "vacated")
+                      .map((row) => (
+                        <option key={row.id} value={row.id}>
+                          {row.resident} ({row.reg}) - {row.room} Bed {row.bed}
+                        </option>
+                      ))}
+                  </select>
+                </label>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <select
-                    value={transferForm.room}
-                    onChange={(event) => {
-                      const nextRoom = event.target.value;
-                      const source = rows.find((row) => row.id === transferForm.sourceId);
-                      const excluded = source ? bedKey(source.room, source.bed) : undefined;
-                      const nextBed = selectableBedsForRoom(nextRoom, excluded)[0]?.bed ?? "A";
-                      setTransferForm((current) => ({ ...current, room: nextRoom, bed: nextBed }));
-                    }}
-                    className="allotment-control"
-                  >
-                    {Array.from(new Set(beds.filter((item) => !item.maintenance).map((item) => item.room))).map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={transferForm.bed}
-                    onChange={(event) => setTransferForm((current) => ({ ...current, bed: event.target.value }))}
-                    className="allotment-control"
-                  >
-                    {selectableBedsForRoom(
-                      transferForm.room,
-                      rows.find((row) => row.id === transferForm.sourceId)
-                        ? bedKey(rows.find((row) => row.id === transferForm.sourceId)!.room, rows.find((row) => row.id === transferForm.sourceId)!.bed)
-                        : undefined,
-                    ).map((option) => (
-                      <option key={option.bed} value={option.bed}>
-                        Bed {option.bed}
-                      </option>
-                    ))}
-                  </select>
+                  <label className="space-y-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--allotment-text-muted)]">Destination Hostel</span>
+                    <select
+                      value={transferForm.hostel}
+                      onChange={(event) => syncTransferFormSelection({ hostel: event.target.value })}
+                      className="allotment-control"
+                      disabled={!transferForm.sourceId}
+                    >
+                      {transferHostelOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="space-y-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--allotment-text-muted)]">Destination Floor</span>
+                    <select
+                      value={transferForm.floor}
+                      onChange={(event) => syncTransferFormSelection({ floor: event.target.value })}
+                      className="allotment-control"
+                      disabled={!transferForm.sourceId}
+                    >
+                      {transferFloorOptions.map((option) => (
+                        <option key={option} value={option}>
+                          Floor {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="space-y-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--allotment-text-muted)]">Destination Room</span>
+                    <select
+                      value={transferForm.room}
+                      onChange={(event) => syncTransferFormSelection({ room: event.target.value })}
+                      className="allotment-control"
+                      disabled={!transferForm.sourceId}
+                    >
+                      {transferRoomOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="space-y-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--allotment-text-muted)]">Destination Bed</span>
+                    <select
+                      value={transferForm.bed}
+                      onChange={(event) => syncTransferFormSelection({ bed: event.target.value })}
+                      className="allotment-control"
+                      disabled={!transferForm.sourceId}
+                    >
+                      {transferBedOptions.map((option) => (
+                        <option key={option.bed} value={option.bed}>
+                          Bed {option.bed}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
-                <input type="date" value={transferForm.date} onChange={(event) => setTransferForm((current) => ({ ...current, date: event.target.value }))} className="allotment-control" />
+                <p className="text-xs leading-5 text-[var(--allotment-text-muted)]">
+                  Destination: {transferForm.hostel}, Floor {transferForm.floor}, Room {transferForm.room}, Bed {transferForm.bed}
+                </p>
+                <input
+                  type="date"
+                  value={transferForm.date}
+                  onChange={(event) => setTransferForm((current) => ({ ...current, date: event.target.value }))}
+                  className="allotment-control"
+                  disabled={!transferForm.sourceId}
+                />
                 <button type="button" className="allotment-button-primary w-full" onClick={transferResident}>
                   <ArrowRightLeft className="h-4 w-4" />
                   Confirm Transfer
@@ -1122,7 +1677,7 @@ export default function AllotmentsPage() {
                     .filter((row) => row.status === "active")
                     .map((row) => (
                       <option key={row.id} value={row.id}>
-                        {row.resident} ({row.reg}) · {row.room} Bed {row.bed}
+                        {row.resident} ({row.reg}) - {row.room} Bed {row.bed}
                       </option>
                     ))}
                 </select>
@@ -1149,7 +1704,7 @@ export default function AllotmentsPage() {
                 <select value={editForm.sourceId} onChange={(event) => openEditWorkflow(Number(event.target.value))} className="allotment-control">
                   {rows.map((row) => (
                     <option key={row.id} value={row.id}>
-                      {row.resident} ({row.reg}) · {row.room} Bed {row.bed}
+                      {row.resident} ({row.reg}) - {row.room} Bed {row.bed}
                     </option>
                   ))}
                 </select>
@@ -1171,7 +1726,7 @@ export default function AllotmentsPage() {
           </section>
 
           <section className="allotment-card p-5" id="allocation-conflicts">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h2 className="text-xl font-semibold tracking-[-0.02em] text-[var(--allotment-text-primary)]">Allocation Conflicts</h2>
                 <p className="mt-1 text-sm leading-6 text-[var(--allotment-text-secondary)]">
@@ -1221,6 +1776,22 @@ export default function AllotmentsPage() {
           </section>
         </aside>
       </div>
+
+      <ExportColumnModal
+        columns={allocationExportColumnOptions}
+        confirmLabel="Export Allotments Excel"
+        description="Choose the allocation fields to include. The workbook will also include an overview sheet and a conflict summary sheet for operations review."
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onConfirm={confirmAllocationExport}
+        onReset={resetAllocationExportColumns}
+        onSelectAll={selectAllAllocationExportColumns}
+        onToggleColumn={toggleAllocationExportColumn}
+        rowCount={filteredRows.length}
+        rowLabel="allocation records"
+        selectedColumnIds={selectedAllocationExportColumnIds}
+        title="Export Allocation Workbook"
+      />
     </section>
   );
 }
