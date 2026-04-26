@@ -24,7 +24,21 @@
   --color-text-strong: #f7fbff;
   --color-text-soft: #b4c5d9;
   --color-text-muted: #8094ab;
+  --color-overlay-soft: rgba(255, 255, 255, 0.03);
+  --color-overlay-muted: rgba(255, 255, 255, 0.05);
+  --color-overlay-strong: rgba(255, 255, 255, 0.08);
+  --color-card-solid: linear-gradient(180deg, rgba(18, 28, 42, 0.92) 0%, rgba(13, 21, 33, 0.96) 100%);
+  --color-card-muted: linear-gradient(180deg, rgba(17, 25, 40, 0.82) 0%, rgba(11, 18, 30, 0.92) 100%);
+  --color-field: linear-gradient(180deg, rgba(19, 30, 48, 0.92) 0%, rgba(14, 23, 38, 0.88) 100%);
+  --color-field-alt: linear-gradient(180deg, rgba(20, 31, 49, 0.92) 0%, rgba(15, 24, 40, 0.86) 100%);
+  --color-option-bg: #101828;
+  --color-disabled-surface: rgba(255, 255, 255, 0.015);
+  --color-backdrop-soft: rgba(7, 14, 28, 0.55);
+  --color-backdrop-strong: rgba(7, 14, 28, 0.72);
+  --color-menu-bg: rgba(9, 14, 24, 0.96);
+  --color-menu-shadow: 0 24px 44px rgba(2, 6, 23, 0.54);
   --color-shadow: 0 28px 90px rgba(2, 8, 21, 0.5);
+  --color-shadow-elevated: 0 30px 90px rgba(4, 10, 23, 0.42);
   --color-ring: rgba(62, 184, 207, 0.22);
   --nav-hover-bg: linear-gradient(90deg, rgba(47, 120, 235, 0.1), rgba(32, 196, 165, 0.08));
   --nav-active-bg: linear-gradient(135deg, #245df4 0%, #1b82f0 48%, #1db5a8 100%);
@@ -159,7 +173,21 @@
   --color-text-strong: #112032;
   --color-text-soft: #51697f;
   --color-text-muted: #6e8398;
+  --color-overlay-soft: rgba(247, 250, 254, 0.88);
+  --color-overlay-muted: rgba(239, 244, 250, 0.96);
+  --color-overlay-strong: rgba(231, 238, 246, 0.98);
+  --color-card-solid: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 250, 254, 0.96) 100%);
+  --color-card-muted: linear-gradient(180deg, rgba(251, 253, 255, 0.98) 0%, rgba(243, 247, 252, 0.96) 100%);
+  --color-field: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(248, 250, 252, 0.98) 100%);
+  --color-field-alt: linear-gradient(180deg, rgba(252, 253, 255, 1) 0%, rgba(245, 248, 252, 0.98) 100%);
+  --color-option-bg: #ffffff;
+  --color-disabled-surface: rgba(226, 232, 240, 0.52);
+  --color-backdrop-soft: rgba(148, 163, 184, 0.24);
+  --color-backdrop-strong: rgba(148, 163, 184, 0.34);
+  --color-menu-bg: rgba(255, 255, 255, 0.98);
+  --color-menu-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
   --color-shadow: 0 18px 54px rgba(15, 23, 42, 0.1);
+  --color-shadow-elevated: 0 24px 60px rgba(15, 23, 42, 0.14);
   --color-ring: rgba(30, 132, 188, 0.16);
   --nav-hover-bg: linear-gradient(90deg, rgba(52, 114, 255, 0.08), rgba(31, 165, 158, 0.08));
   --nav-active-bg: linear-gradient(135deg, #245df4 0%, #1b82f0 58%, #1db5a8 100%);
@@ -562,14 +590,14 @@ body::after {
 
   .panel-soft {
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%),
+      linear-gradient(180deg, var(--color-overlay-soft) 0%, transparent 100%),
       var(--color-surface);
   }
 
   .panel-elevated {
     border-color: var(--color-border-strong);
     box-shadow:
-      0 30px 90px rgba(4, 10, 23, 0.42),
+      var(--color-shadow-elevated),
       inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
@@ -585,7 +613,7 @@ body::after {
     transform: translate3d(0, -3px, 0);
     border-color: var(--color-border-strong);
     box-shadow:
-      0 34px 96px rgba(4, 10, 23, 0.46),
+      var(--color-shadow-elevated),
       inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
 
@@ -627,8 +655,8 @@ body::after {
 
   .dashboard-keycap {
     @apply inline-flex items-center rounded-[0.55rem] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em];
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--color-overlay-strong);
+    border: 1px solid var(--color-border);
     color: var(--color-text-muted);
   }
 
@@ -653,20 +681,20 @@ body::after {
   }
 
   .dashboard-cta-secondary {
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--color-overlay-soft);
     color: var(--color-text-strong);
   }
 
   .dashboard-cta-secondary:hover {
     transform: translate3d(0, -2px, 0);
     border-color: var(--color-border-strong);
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--color-overlay-muted);
   }
 
   .dashboard-surface-card {
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%),
-      rgba(255, 255, 255, 0.02);
+      linear-gradient(180deg, var(--color-overlay-muted) 0%, var(--color-overlay-soft) 100%),
+      var(--color-surface);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.04),
       0 20px 50px rgba(4, 10, 23, 0.12);
@@ -707,7 +735,7 @@ body::after {
 
   .dashboard-progress-track {
     @apply relative overflow-hidden rounded-full;
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--color-overlay-strong);
   }
 
   .dashboard-progress-fill {
@@ -727,8 +755,8 @@ body::after {
   .dashboard-skeleton {
     @apply relative overflow-hidden rounded-[inherit];
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%),
-      rgba(255, 255, 255, 0.03);
+      linear-gradient(180deg, var(--color-overlay-strong) 0%, var(--color-overlay-soft) 100%),
+      var(--color-overlay-soft);
   }
 
   .dashboard-skeleton::after {
@@ -763,14 +791,17 @@ body::after {
 
   .rooms-overview-card {
     @apply rounded-[20px] border px-4 py-3;
-    border-color: rgba(144, 166, 198, 0.2);
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.03) 100%),
-      rgba(255, 255, 255, 0.02);
+    border-color: var(--color-border);
+    background: var(--color-card-muted);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 
   .rooms-card {
+    border-color: var(--color-border);
+    background: var(--color-card-solid);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      0 18px 40px rgba(4, 10, 23, 0.16);
     transition:
       transform 210ms ease,
       border-color 210ms ease,
@@ -785,9 +816,9 @@ body::after {
 
   .rooms-chip {
     @apply inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium;
-    border-color: rgba(145, 170, 205, 0.24);
-    background: rgba(255, 255, 255, 0.06);
-    color: #d2deef;
+    border-color: var(--color-border);
+    background: var(--color-overlay-muted);
+    color: var(--color-text-soft);
   }
 
   .rooms-chip-active {
@@ -804,18 +835,18 @@ body::after {
 
   .rooms-stat {
     @apply rounded-xl border px-2.5 py-1.5;
-    border-color: rgba(255, 255, 255, 0.13);
-    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--color-border);
+    background: var(--color-overlay-muted);
   }
 
   .rooms-stat-label {
     @apply inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.11em];
-    color: #9fb2ca;
+    color: var(--color-text-muted);
   }
 
   .rooms-stat-value {
     @apply mt-0.5 text-sm font-semibold;
-    color: #f4f8ff;
+    color: var(--color-text-strong);
   }
 
   .rooms-skeleton {
@@ -837,8 +868,8 @@ body::after {
   .rooms-select {
     @apply w-full rounded-xl border px-3 text-sm outline-none;
     color: var(--color-text-strong);
-    border-color: rgba(143, 168, 204, 0.26);
-    background: linear-gradient(180deg, rgba(19, 30, 48, 0.92) 0%, rgba(14, 23, 38, 0.88) 100%);
+    border-color: var(--color-border);
+    background: var(--color-field);
     transition:
       border-color 180ms ease,
       box-shadow 180ms ease;
@@ -851,15 +882,15 @@ body::after {
   }
 
   .rooms-select option {
-    background: #0f1728;
-    color: #e3ecff;
+    background: var(--color-option-bg);
+    color: var(--color-text-strong);
   }
 
   .rooms-empty {
     background:
-      radial-gradient(circle at 14% 10%, rgba(29, 181, 168, 0.2), transparent 34%),
-      radial-gradient(circle at 86% 12%, rgba(37, 93, 244, 0.18), transparent 42%),
-      linear-gradient(180deg, rgba(17, 25, 40, 0.82) 0%, rgba(11, 18, 30, 0.92) 100%);
+      radial-gradient(circle at 14% 10%, color-mix(in srgb, var(--color-brand-500) 14%, transparent) 0%, transparent 34%),
+      radial-gradient(circle at 86% 12%, color-mix(in srgb, var(--color-brand-400) 12%, transparent) 0%, transparent 42%),
+      var(--color-card-muted);
   }
 
   .members-animate-rise {
@@ -895,10 +926,8 @@ body::after {
 
   .members-overview-card {
     @apply rounded-[20px] border px-4 py-3;
-    border-color: rgba(144, 166, 198, 0.2);
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.03) 100%),
-      rgba(255, 255, 255, 0.02);
+    border-color: var(--color-border);
+    background: var(--color-card-muted);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 
@@ -915,6 +944,11 @@ body::after {
   }
 
   .members-card {
+    border-color: var(--color-border);
+    background: var(--color-card-solid);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 18px 40px rgba(4, 10, 23, 0.16);
     transition:
       transform 200ms ease,
       border-color 200ms ease,
@@ -928,8 +962,8 @@ body::after {
 
   .members-skeleton {
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.03) 100%),
-      rgba(255, 255, 255, 0.03);
+      linear-gradient(180deg, var(--color-overlay-strong) 0%, var(--color-overlay-soft) 100%),
+      var(--color-overlay-soft);
   }
 
   .members-skeleton::after {
@@ -951,17 +985,19 @@ body::after {
 
   .members-upload-card {
     @apply rounded-2xl border p-4 transition;
-    border-color: rgba(145, 170, 205, 0.2);
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%),
-      rgba(255, 255, 255, 0.02);
+    border-color: var(--color-border);
+    background: var(--color-card-muted);
   }
 
   .members-upload-card:hover {
     border-color: rgba(115, 163, 255, 0.4);
     background:
-      linear-gradient(180deg, rgba(115, 163, 255, 0.11) 0%, rgba(31, 165, 158, 0.08) 100%),
-      rgba(255, 255, 255, 0.03);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--color-brand-400) 12%, transparent) 0%,
+        color-mix(in srgb, var(--color-brand-500) 8%, transparent) 100%
+      ),
+      var(--color-card-muted);
   }
 
   .members-input,
@@ -969,8 +1005,8 @@ body::after {
   .members-textarea {
     @apply w-full rounded-xl border px-3 py-3 text-sm outline-none;
     color: var(--color-text-strong);
-    border-color: rgba(143, 168, 204, 0.24);
-    background: linear-gradient(180deg, rgba(19, 29, 48, 0.9) 0%, rgba(15, 23, 37, 0.86) 100%);
+    border-color: var(--color-border);
+    background: var(--color-field);
     transition:
       border-color 180ms ease,
       box-shadow 180ms ease,
@@ -985,8 +1021,67 @@ body::after {
   }
 
   .members-select option {
-    background: #0f1728;
-    color: #e3ecff;
+    background: var(--color-option-bg);
+    color: var(--color-text-strong);
+  }
+
+  .app-modal-backdrop {
+    background: var(--color-backdrop-strong);
+  }
+
+  .app-modal-close {
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-full border transition;
+    border-color: var(--color-border);
+    background: var(--color-overlay-soft);
+    color: var(--color-text-soft);
+  }
+
+  .app-modal-close:hover {
+    border-color: var(--color-border-strong);
+    background: var(--color-overlay-muted);
+    color: var(--color-text-strong);
+  }
+
+  .app-progress-track {
+    background: var(--color-overlay-strong);
+  }
+
+  .app-icon-surface {
+    border-color: var(--color-border);
+    background: var(--color-overlay-muted);
+  }
+
+  .app-subtle-card {
+    border: 1px solid var(--color-border);
+    background: var(--color-card-muted);
+  }
+
+  .app-secondary-button {
+    border-color: var(--color-border);
+    background: var(--color-overlay-soft);
+    color: var(--color-text-soft);
+  }
+
+  .app-secondary-button:hover {
+    border-color: var(--color-border-strong);
+    background: var(--color-overlay-muted);
+    color: var(--color-text-strong);
+  }
+
+  .app-primary-note {
+    border-color: color-mix(in srgb, var(--color-brand-500) 28%, transparent);
+    background: color-mix(in srgb, var(--color-brand-500) 10%, var(--color-overlay-soft));
+    color: var(--color-text-strong);
+  }
+
+  .app-toggle {
+    border-color: var(--color-border);
+    background: var(--color-overlay-strong);
+  }
+
+  .app-toggle[data-checked="true"] {
+    border-color: color-mix(in srgb, var(--color-brand-500) 48%, transparent);
+    background: var(--color-brand-500);
   }
 
   .settings-shell {
@@ -1032,7 +1127,7 @@ body::after {
   .settings-card-icon {
     @apply inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl;
     border: 1px solid var(--settings-border);
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--color-overlay-soft);
     color: var(--settings-text-secondary);
   }
 
@@ -1059,7 +1154,7 @@ body::after {
     @apply w-full rounded-[14px] px-3.5 text-sm outline-none;
     min-height: 46px;
     border: 1px solid var(--settings-border);
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--color-field-alt);
     color: var(--settings-text-primary);
     transition:
       border-color 160ms ease,
@@ -1083,7 +1178,7 @@ body::after {
   .settings-control:disabled {
     cursor: not-allowed;
     opacity: 0.7;
-    background: rgba(255, 255, 255, 0.015);
+    background: var(--color-disabled-surface);
   }
 
   .settings-control-error {
@@ -1099,14 +1194,14 @@ body::after {
   }
 
   .settings-select option {
-    background: #101828;
+    background: var(--color-option-bg);
     color: var(--settings-text-primary);
   }
 
   .settings-toggle-row {
     @apply flex flex-col gap-4 rounded-[16px] px-4 py-3.5 text-left sm:flex-row sm:items-center sm:justify-between;
     border: 1px solid var(--settings-border);
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--color-overlay-soft);
     transition:
       border-color 160ms ease,
       background-color 160ms ease,
@@ -1129,7 +1224,7 @@ body::after {
   .settings-toggle {
     @apply relative inline-flex h-7 w-12 shrink-0 rounded-full;
     border: 1px solid transparent;
-    background: rgba(255, 255, 255, 0.12);
+    background: var(--color-overlay-strong);
     transition: background-color 160ms ease;
   }
 
@@ -1157,20 +1252,16 @@ body::after {
     @apply sticky z-20 flex flex-col gap-4 rounded-[18px] px-4 py-4 sm:flex-row sm:items-center sm:justify-between;
     bottom: 12px;
     border: 1px solid var(--settings-border-strong);
-    background: rgba(11, 17, 26, 0.9);
-    box-shadow: 0 16px 34px rgba(3, 9, 22, 0.18);
+    background: var(--color-menu-bg);
+    box-shadow: var(--color-menu-shadow);
     backdrop-filter: blur(14px);
-  }
-
-  :root[data-theme="light"] .settings-savebar {
-    background: rgba(255, 255, 255, 0.92);
   }
 
   .settings-status-badge {
     @apply inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium;
     border: 1px solid var(--settings-border);
     color: var(--settings-text-secondary);
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--color-overlay-soft);
   }
 
   .settings-status-badge[data-tone="success"] {
@@ -1210,7 +1301,7 @@ body::after {
 
   .settings-button-secondary {
     border: 1px solid var(--settings-border);
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--color-overlay-soft);
     color: var(--settings-text-secondary);
   }
 
@@ -1258,7 +1349,7 @@ body::after {
 
   .allotment-hero {
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%),
+      linear-gradient(180deg, var(--color-overlay-soft) 0%, transparent 100%),
       var(--allotment-bg-surface-elevated);
   }
 
@@ -1266,7 +1357,7 @@ body::after {
     @apply w-full rounded-[14px] px-3.5 text-sm outline-none;
     min-height: 46px;
     border: 1px solid var(--allotment-border-subtle);
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--color-field-alt);
     color: var(--allotment-text-primary);
     transition:
       border-color 160ms ease,
@@ -1287,8 +1378,14 @@ body::after {
     box-shadow: 0 0 0 4px var(--allotment-focus-ring);
   }
 
+  .allotment-control:disabled {
+    cursor: not-allowed;
+    opacity: 0.72;
+    background: var(--color-disabled-surface);
+  }
+
   .allotment-control option {
-    background: #0f1728;
+    background: var(--color-option-bg);
     color: var(--allotment-text-primary);
   }
 
@@ -1296,7 +1393,7 @@ body::after {
     @apply flex items-center gap-3 rounded-[16px] px-4;
     min-height: 52px;
     border: 1px solid var(--allotment-border-subtle);
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--color-field-alt);
     transition:
       border-color 160ms ease,
       box-shadow 160ms ease;
@@ -1320,6 +1417,7 @@ body::after {
   .allotment-button-danger {
     min-height: 46px;
     padding: 0 16px;
+    white-space: nowrap;
   }
 
   .allotment-button-primary {
@@ -1331,7 +1429,7 @@ body::after {
 
   .allotment-button-secondary {
     border: 1px solid var(--allotment-border-subtle);
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--color-overlay-soft);
     color: var(--allotment-text-primary);
   }
 
@@ -1350,15 +1448,18 @@ body::after {
 
   .allotment-shortcut {
     @apply rounded-[16px] px-4 py-3 text-left;
+    align-items: flex-start;
+    justify-content: flex-start;
+    min-height: 92px;
     border: 1px solid var(--allotment-border-subtle);
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--color-overlay-soft);
     color: var(--allotment-text-primary);
   }
 
   .allotment-badge {
     @apply inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-medium;
     border: 1px solid var(--allotment-border-subtle);
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--color-overlay-soft);
     color: var(--allotment-text-secondary);
   }
 
@@ -1387,22 +1488,24 @@ body::after {
   .allotment-stat-card {
     @apply rounded-[18px] p-5;
     border: 1px solid var(--allotment-border-subtle);
-    background: var(--allotment-bg-surface-elevated);
+    background: var(--color-card-muted);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
   }
 
   .allotment-table-wrap {
     border: 1px solid var(--allotment-border-subtle);
     border-radius: 18px;
-    overflow: auto;
-    background: rgba(255, 255, 255, 0.02);
+    overflow-x: auto;
+    overflow-y: hidden;
+    background: var(--color-overlay-soft);
   }
 
   .allotment-table {
     width: 100%;
-    min-width: 1080px;
+    min-width: 780px;
     border-collapse: separate;
     border-spacing: 0;
+    table-layout: fixed;
   }
 
   .allotment-table thead th {
@@ -1415,36 +1518,65 @@ body::after {
     font-weight: 700;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    padding: 14px 16px;
+    padding: 14px 14px;
     border-bottom: 1px solid var(--allotment-border-subtle);
   }
 
   .allotment-table tbody td {
-    padding: 15px 16px;
+    padding: 14px;
     vertical-align: middle;
     border-bottom: 1px solid var(--allotment-border-subtle);
     color: var(--allotment-text-secondary);
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--color-overlay-soft);
+    line-height: 1.45;
     transition: background-color 160ms ease, border-color 160ms ease;
   }
 
   .allotment-table tbody tr:hover td {
-    background: rgba(255, 255, 255, 0.035);
+    background: var(--color-overlay-muted);
+  }
+
+  .allotment-table tbody tr[data-clickable="true"] {
+    cursor: pointer;
   }
 
   .allotment-table tbody tr[data-selected="true"] td {
-    background: color-mix(in srgb, var(--allotment-accent-primary) 8%, rgba(255, 255, 255, 0.02));
+    background: color-mix(in srgb, var(--allotment-accent-primary) 8%, var(--color-overlay-soft));
   }
 
   .allotment-table tbody tr[data-conflict="true"] td {
     border-bottom-color: color-mix(in srgb, var(--allotment-danger) 22%, var(--allotment-border-subtle));
   }
 
+  .allotment-table tbody tr[data-clickable="true"]:focus-visible td {
+    background: color-mix(in srgb, var(--allotment-accent-primary) 10%, var(--color-overlay-soft));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--allotment-accent-primary) 45%, transparent);
+  }
+
+  .allotment-selectable-card {
+    cursor: pointer;
+  }
+
+  .allotment-selectable-card[data-selected="true"] {
+    border-color: color-mix(in srgb, var(--allotment-accent-primary) 28%, var(--allotment-border-subtle));
+    background: color-mix(in srgb, var(--allotment-accent-primary) 6%, var(--allotment-bg-surface));
+  }
+
+  .allotment-selectable-card[data-conflict="true"] {
+    border-color: color-mix(in srgb, var(--allotment-danger) 22%, var(--allotment-border-subtle));
+  }
+
+  .allotment-selectable-card:focus-visible {
+    outline: 1px solid color-mix(in srgb, var(--allotment-accent-primary) 48%, transparent);
+    outline-offset: 3px;
+  }
+
   .allotment-inline-action {
     min-height: 34px;
     padding: 0 12px;
+    white-space: nowrap;
     border: 1px solid var(--allotment-border-subtle);
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--color-overlay-soft);
     color: var(--allotment-text-secondary);
   }
 
@@ -1463,7 +1595,7 @@ body::after {
   .allotment-history-item {
     @apply relative rounded-[18px] px-4 py-3.5;
     border: 1px solid var(--allotment-border-subtle);
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--color-overlay-soft);
   }
 
   .allotment-history-item::before {
@@ -1514,14 +1646,14 @@ body::after {
 
   .billing-card-elevated {
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.015) 100%),
+      linear-gradient(180deg, var(--color-overlay-soft) 0%, transparent 100%),
       var(--billing-bg-surface-elevated);
   }
 
   .billing-chip {
     @apply inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium;
     border: 1px solid var(--billing-border-subtle);
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--color-overlay-soft);
     color: var(--billing-text-secondary);
   }
 
@@ -1562,6 +1694,7 @@ body::after {
   .billing-button-ghost {
     min-height: 46px;
     padding: 0 16px;
+    white-space: nowrap;
   }
 
   .billing-button-primary {
@@ -1573,7 +1706,7 @@ body::after {
 
   .billing-button-secondary {
     border: 1px solid var(--billing-border-subtle);
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--color-overlay-soft);
     color: var(--billing-text-primary);
   }
 
@@ -1604,7 +1737,7 @@ body::after {
     min-height: 46px;
     border-radius: var(--billing-radius-sm);
     border: 1px solid var(--billing-border-subtle);
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--color-field-alt);
     color: var(--billing-text-primary);
     transition:
       border-color 180ms ease,
@@ -1631,7 +1764,7 @@ body::after {
   }
 
   .billing-control option {
-    background: #101828;
+    background: var(--color-option-bg);
     color: var(--billing-text-primary);
   }
 
@@ -1645,7 +1778,7 @@ body::after {
     min-height: 52px;
     border-radius: 16px;
     border: 1px solid var(--billing-border-subtle);
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--color-field-alt);
     transition:
       border-color 180ms ease,
       box-shadow 180ms ease;
@@ -1658,6 +1791,9 @@ body::after {
 
   .billing-kpi {
     @apply rounded-[18px] p-5;
+    min-height: 156px;
+    display: flex;
+    flex-direction: column;
     border: 1px solid var(--billing-border-subtle);
     background: var(--billing-bg-surface-elevated);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
@@ -1695,7 +1831,7 @@ body::after {
   .billing-progress-track {
     @apply relative overflow-hidden rounded-full;
     height: 8px;
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--color-overlay-strong);
   }
 
   .billing-progress-fill {
@@ -1709,8 +1845,9 @@ body::after {
   .billing-line-table-wrap {
     border: 1px solid var(--billing-border-subtle);
     border-radius: 18px;
-    overflow: auto;
-    background: rgba(255, 255, 255, 0.02);
+    overflow-x: auto;
+    overflow-y: hidden;
+    background: var(--color-overlay-soft);
   }
 
   .billing-ledger-table,
@@ -1721,7 +1858,12 @@ body::after {
   }
 
   .billing-ledger-table {
-    min-width: 1200px;
+    min-width: 1080px;
+    table-layout: fixed;
+  }
+
+  .billing-ledger-table-compact {
+    min-width: 960px;
   }
 
   .billing-line-table {
@@ -1739,34 +1881,80 @@ body::after {
     font-weight: 700;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    padding: 14px 16px;
+    padding: 14px 12px;
     border-bottom: 1px solid var(--billing-border-subtle);
   }
 
   .billing-ledger-table tbody td,
   .billing-line-table tbody td {
-    padding: 14px 16px;
+    padding: 14px 12px;
     vertical-align: middle;
     border-bottom: 1px solid var(--billing-border-subtle);
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--color-overlay-soft);
     color: var(--billing-text-secondary);
+    line-height: 1.45;
     transition: background-color 180ms ease, border-color 180ms ease;
   }
 
   .billing-ledger-table tbody tr:hover td,
   .billing-line-table tbody tr:hover td {
-    background: rgba(255, 255, 255, 0.035);
+    background: var(--color-overlay-muted);
   }
 
   .billing-ledger-table tbody tr[data-overdue="true"] td {
     border-bottom-color: color-mix(in srgb, var(--billing-danger) 16%, var(--billing-border-subtle));
   }
 
+  .billing-ledger-table-compact thead th {
+    padding: 10px 8px;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+  }
+
+  .billing-ledger-table-compact thead th button {
+    gap: 0.35rem;
+    font-size: 10px;
+    line-height: 1.2;
+  }
+
+  .billing-ledger-table-compact tbody td {
+    padding: 10px 8px;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .billing-ledger-table-compact .billing-chip-compact {
+    gap: 0.25rem;
+    padding: 0.2rem 0.45rem;
+    font-size: 10px;
+    line-height: 1.15;
+  }
+
+  .billing-ledger-table-compact .billing-row-action-compact {
+    min-height: 28px;
+    padding: 0 8px;
+    gap: 0.3rem;
+    font-size: 11px;
+    line-height: 1.1;
+  }
+
+  .billing-ledger-table-compact .billing-row-action-compact svg {
+    width: 0.8rem;
+    height: 0.8rem;
+  }
+
+  .billing-ledger-table-compact .billing-value-positive,
+  .billing-ledger-table-compact .billing-value-negative,
+  .billing-ledger-table-compact .billing-value-neutral {
+    font-size: 12px;
+  }
+
   .billing-row-action {
     min-height: 34px;
     padding: 0 12px;
+    white-space: nowrap;
     border: 1px solid var(--billing-border-subtle);
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--color-overlay-soft);
     color: var(--billing-text-secondary);
   }
 
@@ -1800,19 +1988,104 @@ body::after {
     @apply sticky flex flex-wrap items-center gap-3 rounded-[18px] px-4 py-4;
     bottom: 12px;
     border: 1px solid var(--billing-border-strong);
-    background: rgba(10, 15, 24, 0.9);
-    box-shadow: var(--billing-shadow-elevated);
+    background: var(--color-menu-bg);
+    box-shadow: var(--color-menu-shadow);
     backdrop-filter: blur(14px);
   }
 
-  :root[data-theme="light"] .billing-action-bar {
-    background: rgba(255, 255, 255, 0.92);
+  @keyframes billingDrawerFade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes billingDrawerEnter {
+    from {
+      opacity: 0;
+      transform: translate3d(28px, 0, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  .billing-drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    border: none;
+    background: var(--color-backdrop-soft);
+    backdrop-filter: blur(8px);
+    animation: billingDrawerFade 180ms ease-out both;
+  }
+
+  .billing-drawer-panel {
+    position: fixed;
+    inset: 0 0 0 auto;
+    z-index: 70;
+    display: flex;
+    width: min(100vw, 560px);
+    flex-direction: column;
+    border-left: 1px solid var(--billing-border-strong);
+    background:
+      linear-gradient(180deg, var(--color-overlay-soft) 0%, transparent 100%),
+      var(--billing-bg-page);
+    box-shadow: -24px 0 56px rgba(3, 9, 22, 0.24);
+    animation: billingDrawerEnter 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .billing-drawer-header,
+  .billing-drawer-footer {
+    position: sticky;
+    z-index: 1;
+    border-color: var(--billing-border-subtle);
+    background: color-mix(in srgb, var(--billing-bg-page) 92%, transparent);
+    backdrop-filter: blur(18px);
+  }
+
+  .billing-drawer-header {
+    top: 0;
+    border-bottom: 1px solid var(--billing-border-subtle);
+    padding: 20px 20px 16px;
+  }
+
+  .billing-drawer-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+  }
+
+  .billing-drawer-footer {
+    bottom: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    border-top: 1px solid var(--billing-border-subtle);
+    padding: 16px 20px 20px;
+  }
+
+  @media (max-width: 640px) {
+    .billing-drawer-panel {
+      width: 100vw;
+    }
+
+    .billing-drawer-header,
+    .billing-drawer-body,
+    .billing-drawer-footer {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
   }
 
   .billing-toggle {
     @apply flex items-start gap-3 rounded-[16px] px-4 py-3;
     border: 1px solid var(--billing-border-subtle);
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--color-overlay-soft);
     transition: border-color 180ms ease, background-color 180ms ease;
   }
 
@@ -1822,9 +2095,10 @@ body::after {
 
   .billing-pagination {
     @apply inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium;
+    white-space: nowrap;
     border: 1px solid var(--billing-border-subtle);
     color: var(--billing-text-secondary);
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--color-overlay-soft);
   }
 
   .status-dot {
@@ -1935,6 +2209,109 @@ body::after {
   .login-particle {
     animation: none !important;
   }
+}
+
+:root[data-theme="light"] [class~="text-slate-50"],
+:root[data-theme="light"] [class~="text-slate-100"] {
+  color: var(--color-text-strong) !important;
+}
+
+:root[data-theme="light"] [class~="text-slate-200"],
+:root[data-theme="light"] [class~="text-slate-300"] {
+  color: var(--color-text-soft) !important;
+}
+
+:root[data-theme="light"] [class~="text-slate-400"],
+:root[data-theme="light"] [class~="text-slate-500"] {
+  color: var(--color-text-muted) !important;
+}
+
+:root[data-theme="light"] [class~="text-blue-100"],
+:root[data-theme="light"] [class~="text-blue-300"] {
+  color: #2563eb !important;
+}
+
+:root[data-theme="light"] [class~="text-cyan-200"],
+:root[data-theme="light"] [class~="text-cyan-300"] {
+  color: #0f766e !important;
+}
+
+:root[data-theme="light"] [class~="text-emerald-200"],
+:root[data-theme="light"] [class~="text-emerald-300"] {
+  color: #059669 !important;
+}
+
+:root[data-theme="light"] [class~="text-amber-200"],
+:root[data-theme="light"] [class~="text-amber-300"] {
+  color: #b45309 !important;
+}
+
+:root[data-theme="light"] [class~="text-rose-100"],
+:root[data-theme="light"] [class~="text-rose-200"],
+:root[data-theme="light"] [class~="text-rose-300"] {
+  color: #be123c !important;
+}
+
+:root[data-theme="light"] [class~="bg-slate-950/55"] {
+  background-color: var(--color-backdrop-soft) !important;
+}
+
+:root[data-theme="light"] [class~="bg-slate-950/70"] {
+  background-color: var(--color-backdrop-strong) !important;
+}
+
+:root[data-theme="light"] [class~="bg-black/20"] {
+  background-color: var(--color-overlay-strong) !important;
+}
+
+:root[data-theme="light"] [class~="border-white/10"],
+:root[data-theme="light"] [class~="border-white/14"],
+:root[data-theme="light"] [class~="border-white/15"],
+:root[data-theme="light"] [class~="border-white/18"],
+:root[data-theme="light"] [class~="border-white/20"],
+:root[data-theme="light"] [class~="border-white/25"] {
+  border-color: var(--color-border) !important;
+}
+
+:root[data-theme="light"] [class*="bg-white/5"],
+:root[data-theme="light"] [class*="bg-white/8"],
+:root[data-theme="light"] [class*="bg-white/10"],
+:root[data-theme="light"] [class*="bg-white/[0.03]"],
+:root[data-theme="light"] [class*="bg-white/[0.04]"],
+:root[data-theme="light"] [class*="bg-white/3"],
+:root[data-theme="light"] [class*="bg-white/2"] {
+  background: var(--color-overlay-muted) !important;
+}
+
+:root[data-theme="light"] [class*="hover:bg-white/5"]:hover,
+:root[data-theme="light"] [class*="hover:bg-white/8"]:hover,
+:root[data-theme="light"] [class*="hover:bg-white/[0.1]"]:hover,
+:root[data-theme="light"] [class*="hover:bg-white/10"]:hover,
+:root[data-theme="light"] [class*="hover:bg-slate-100"]:hover {
+  background: var(--color-overlay-strong) !important;
+}
+
+:root[data-theme="light"] .dashboard-glow {
+  opacity: 0.7;
+}
+
+:root[data-theme="light"] .rooms-command,
+:root[data-theme="light"] .members-command {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 14px 28px rgba(15, 23, 42, 0.08);
+}
+
+:root[data-theme="light"] .rooms-command:focus-within,
+:root[data-theme="light"] .members-command:focus-within {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 18px 34px rgba(37, 93, 244, 0.12);
+}
+
+:root[data-theme="light"] .rooms-card:hover,
+:root[data-theme="light"] .members-card:hover {
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.1);
 }
 
 :root[data-theme="dark"] [class~="text-slate-900"] {

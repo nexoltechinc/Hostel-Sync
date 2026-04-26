@@ -157,7 +157,7 @@ function MemberFormModalInner({
   }
 
   return (
-    <div className="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-sm sm:grid sm:place-items-center sm:p-4" onClick={onClose}>
+    <div className="app-modal-backdrop fixed inset-0 z-40 backdrop-blur-sm sm:grid sm:place-items-center sm:p-4" onClick={onClose}>
       <div
         className="members-modal-enter panel panel-elevated flex h-[100dvh] w-full flex-col rounded-none border-0 sm:h-auto sm:max-h-[95vh] sm:max-w-4xl sm:rounded-[1.75rem] sm:border"
         onClick={(event) => event.stopPropagation()}
@@ -169,19 +169,19 @@ function MemberFormModalInner({
                 <Sparkles className="h-3.5 w-3.5" />
                 Resident onboarding
               </span>
-              <h2 className="mt-2 text-lg font-semibold text-slate-900">{mode === "create" ? "Create Member" : "Edit Member"}</h2>
-              <p className="text-sm text-slate-600">Maintain profile, residency, and communication details from one flow.</p>
+              <h2 className="mt-2 text-lg font-semibold text-[var(--color-text-strong)]">{mode === "create" ? "Create Member" : "Edit Member"}</h2>
+              <p className="text-sm text-[var(--color-text-soft)]">Maintain profile, residency, and communication details from one flow.</p>
             </div>
             <button
               type="button"
               onClick={onClose}
               aria-label="Close member form"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 text-slate-600 transition hover:bg-slate-100"
+              className="app-modal-close"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
-          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/8">
+          <div className="app-progress-track mt-3 h-1.5 overflow-hidden rounded-full">
             <div className="members-progress-fill h-full rounded-full bg-[linear-gradient(90deg,#245df4,#1db5a8)]" />
           </div>
         </div>
@@ -215,7 +215,7 @@ function MemberFormModalInner({
             <div className="grid gap-3 md:grid-cols-2">
               <label className="members-upload-card cursor-pointer">
                 <input type="file" accept="image/*" className="sr-only" onChange={(event) => onPhotoSelected(event.target.files)} />
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[#8fb2ff]">
+                <span className="app-icon-surface inline-flex h-10 w-10 items-center justify-center rounded-xl border text-[#4f7fff]">
                   <Camera className="h-5 w-5" />
                 </span>
                 <span className="mt-3 block text-sm font-semibold text-[var(--color-text-strong)]">Profile Photo</span>
@@ -224,7 +224,7 @@ function MemberFormModalInner({
 
               <label className="members-upload-card cursor-pointer">
                 <input type="file" multiple className="sr-only" onChange={(event) => onDocumentsSelected(event.target.files)} />
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[#77d0be]">
+                <span className="app-icon-surface inline-flex h-10 w-10 items-center justify-center rounded-xl border text-[#159f83]">
                   <FileUp className="h-5 w-5" />
                 </span>
                 <span className="mt-3 block text-sm font-semibold text-[var(--color-text-strong)]">Documents</span>
@@ -389,7 +389,7 @@ function MemberFormModalInner({
               />
             </label>
 
-            <section className="md:col-span-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <section className="app-subtle-card md:col-span-2 rounded-2xl p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold text-[var(--color-text-strong)]">Welcome Notification</p>
@@ -398,9 +398,8 @@ function MemberFormModalInner({
                 <button
                   type="button"
                   onClick={() => setWelcomeEnabled((value) => !value)}
-                  className={`inline-flex h-7 w-12 items-center rounded-full border px-1 transition ${
-                    welcomeEnabled ? "border-[#4f7fff] bg-[#245df4]" : "border-white/20 bg-white/8"
-                  }`}
+                  data-checked={welcomeEnabled}
+                  className="app-toggle inline-flex h-7 w-12 items-center rounded-full border px-1 transition"
                   aria-pressed={welcomeEnabled}
                   aria-label="Toggle welcome notification"
                 >
@@ -409,7 +408,7 @@ function MemberFormModalInner({
               </div>
             </section>
 
-            <section className="md:col-span-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <section className="app-subtle-card md:col-span-2 rounded-2xl p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold text-[var(--color-text-strong)]">Check-in QR</p>
@@ -418,14 +417,14 @@ function MemberFormModalInner({
                 <button
                   type="button"
                   onClick={() => setQrPreviewReady(true)}
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/8 px-3 py-2 text-sm font-medium text-[var(--color-text-strong)] transition hover:bg-white/14"
+                  className="app-secondary-button inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition"
                 >
                   <QrCode className="h-4 w-4" />
                   Generate QR
                 </button>
               </div>
               {qrPreviewReady ? (
-                <div className="mt-3 inline-flex items-center gap-2 rounded-xl border border-[#4f7fff]/35 bg-[#1e2e5d]/50 px-3 py-2 text-xs text-[#c7d8ff]">
+                <div className="app-primary-note mt-3 inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs">
                   <QrCode className="h-4 w-4" />
                   QR preview is ready and can be attached after save.
                 </div>
@@ -438,7 +437,7 @@ function MemberFormModalInner({
             <button
               type="button"
               onClick={onClose}
-              className="w-full rounded-xl border border-white/18 bg-white/[0.04] px-4 py-3 text-sm font-medium text-[var(--color-text-soft)] transition hover:bg-white/[0.1] sm:w-auto"
+              className="app-secondary-button w-full rounded-xl border px-4 py-3 text-sm font-medium transition sm:w-auto"
             >
               Cancel
             </button>

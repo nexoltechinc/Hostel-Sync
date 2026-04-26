@@ -3,6 +3,7 @@
 import {
   ChevronLeft,
   ChevronRight,
+  Download,
   EllipsisVertical,
   LoaderCircle,
   Pencil,
@@ -17,9 +18,11 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { MemberFormModal } from "@/components/members/member-form-modal";
+import { ExportColumnModal } from "@/components/ui/export-column-modal";
 import { useCreateMember, useDeleteMember, useMembers, useUpdateMember } from "@/hooks/use-members";
 import { useSession } from "@/hooks/use-session";
-import type { MembersQueryParams } from "@/lib/api";
+import { exportRowsToExcel, type ExportColumnDefinition } from "@/lib/export";
+import { getMembers, type MembersQueryParams } from "@/lib/api";
 import type { Member, MemberGender, MemberStatus, MemberWritePayload } from "@/lib/types";
 
 const STATUS_FILTERS: Array<{ value: MemberStatus | "all"; label: string }> = [
@@ -123,6 +126,12 @@ function getAvatarBackground(seed: string) {
   return AVATAR_BACKGROUNDS[total % AVATAR_BACKGROUNDS.length];
 }
 
+function titleCase(value: string) {
+  return value
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
 function isManageMembersAllowed(permissions: string[]) {
   return permissions.includes("*") || permissions.includes("manage_members");
 }
@@ -140,6 +149,134 @@ function getPaginationWindow(page: number, totalPages: number) {
   return Array.from({ length: 5 }, (_, idx) => start + idx);
 }
 
+const MEMBER_EXPORT_COLUMNS: ExportColumnDefinition<Member>[] = [
+  {
+    id: "member_code",
+    label: "Member Code",
+    description: "Unique resident identifier used by the hostel team.",
+    width: 16,
+    getValue: (member) => member.member_code,
+  },
+  {
+    id: "full_name",
+    label: "Full Name",
+    description: "Resident full name for roster and billing review.",
+    width: 24,
+    getValue: (member) => member.full_name,
+  },
+  {
+    id: "hostel",
+    label: "Hostel",
+    description: "Assigned hostel or building reference.",
+    width: 14,
+    getValue: (member) => `Hostel ${member.hostel}`,
+  },
+  {
+    id: "gender",
+    label: "Gender",
+    description: "Resident gender profile value.",
+    width: 12,
+    getValue: (member) => titleCase(member.gender),
+  },
+  {
+    id: "status",
+    label: "Status",
+    description: "Current resident lifecycle status.",
+    width: 15,
+    getValue: (member) => STATUS_META[member.status].label,
+  },
+  {
+    id: "phone",
+    label: "Phone",
+    description: "Primary contact number.",
+    width: 18,
+    getValue: (member) => member.phone,
+  },
+  {
+    id: "guardian_name",
+    label: "Guardian Name",
+    description: "Guardian or family contact name.",
+    width: 20,
+    getValue: (member) => member.guardian_name,
+  },
+  {
+    id: "emergency_contact",
+    label: "Emergency Contact",
+    description: "Emergency phone number or backup contact.",
+    width: 20,
+    getValue: (member) => member.emergency_contact,
+  },
+  {
+    id: "joining_date",
+    label: "Joining Date",
+    description: "Original resident start date.",
+    kind: "date",
+    width: 16,
+    getValue: (member) => member.joining_date,
+  },
+  {
+    id: "leaving_date",
+    label: "Leaving Date",
+    description: "Checkout or inactive effective date when available.",
+    defaultSelected: false,
+    kind: "date",
+    width: 16,
+    getValue: (member) => member.leaving_date,
+  },
+  {
+    id: "id_number",
+    label: "ID Number",
+    description: "Government or institution ID reference.",
+    defaultSelected: false,
+    width: 20,
+    getValue: (member) => member.id_number,
+  },
+  {
+    id: "address",
+    label: "Address",
+    description: "Resident address captured in the profile.",
+    defaultSelected: false,
+    width: 34,
+    getValue: (member) => member.address,
+  },
+  {
+    id: "remarks",
+    label: "Remarks",
+    description: "Internal notes or operational remarks.",
+    defaultSelected: false,
+    width: 30,
+    getValue: (member) => member.remarks,
+  },
+  {
+    id: "created_at",
+    label: "Created At",
+    description: "Record creation timestamp.",
+    defaultSelected: false,
+    kind: "datetime",
+    width: 22,
+    getValue: (member) => member.created_at,
+  },
+  {
+    id: "updated_at",
+    label: "Updated At",
+    description: "Latest profile update timestamp.",
+    defaultSelected: false,
+    kind: "datetime",
+    width: 22,
+    getValue: (member) => member.updated_at,
+  },
+];
+
+const memberExportColumnOptions = MEMBER_EXPORT_COLUMNS.map(({ id, label, description }) => ({
+  id,
+  label,
+  description,
+}));
+
+const defaultMemberExportColumnIds = MEMBER_EXPORT_COLUMNS
+  .filter((column) => column.defaultSelected !== false)
+  .map((column) => column.id);
+
 function MembersLoadingSkeleton() {
   return (
     <div className="space-y-3">
@@ -150,7 +287,6 @@ function MembersLoadingSkeleton() {
           style={{
             animationDelay: `${index * 45}ms`,
             borderColor: "var(--color-border)",
-            background: "linear-gradient(180deg, rgba(18,28,42,0.92) 0%, rgba(13,21,33,0.94) 100%)",
           }}
         >
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_180px_220px_auto] lg:items-center">
@@ -193,6 +329,11 @@ export default function MembersPage() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [openActionMenuId, setOpenActionMenuId] = useState<number | null>(null);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isExportingMembers, setIsExportingMembers] = useState(false);
+  const [selectedMemberExportColumnIds, setSelectedMemberExportColumnIds] = useState<string[]>(
+    defaultMemberExportColumnIds,
+  );
 
   const params = useMemo<MembersQueryParams>(
     () => ({
@@ -338,6 +479,125 @@ export default function MembersPage() {
     setOpenActionMenuId(null);
   }
 
+  function openExportModal() {
+    if (totalRecords === 0) {
+      setFeedback("No matching members are available to export.");
+      setErrorMessage(null);
+      return;
+    }
+
+    setIsExportModalOpen(true);
+  }
+
+  function toggleMemberExportColumn(columnId: string) {
+    setSelectedMemberExportColumnIds((current) =>
+      current.includes(columnId) ? current.filter((item) => item !== columnId) : [...current, columnId],
+    );
+  }
+
+  function resetMemberExportColumns() {
+    setSelectedMemberExportColumnIds(defaultMemberExportColumnIds);
+  }
+
+  function selectAllMemberExportColumns() {
+    setSelectedMemberExportColumnIds(MEMBER_EXPORT_COLUMNS.map((column) => column.id));
+  }
+
+  async function fetchAllMembersForExport() {
+    const collected: Member[] = [];
+    let exportPage = 1;
+
+    while (true) {
+      const response = await getMembers({
+        gender: genderFilter,
+        ordering: "-id",
+        page: exportPage,
+        search: searchInput,
+        status: statusFilter,
+      });
+
+      collected.push(...response.results);
+
+      if (!response.next || response.results.length === 0) {
+        break;
+      }
+
+      exportPage += 1;
+    }
+
+    return collected;
+  }
+
+  async function confirmMemberExport() {
+    if (selectedMemberExportColumnIds.length === 0) {
+      setErrorMessage("Select at least one member column before exporting.");
+      setFeedback(null);
+      return;
+    }
+
+    setIsExportingMembers(true);
+    setErrorMessage(null);
+
+    try {
+      const exportMembers = await fetchAllMembersForExport();
+
+      if (exportMembers.length === 0) {
+        setFeedback("No matching members are available to export.");
+        setIsExportModalOpen(false);
+        return;
+      }
+
+      const selectedColumns = MEMBER_EXPORT_COLUMNS.filter((column) =>
+        selectedMemberExportColumnIds.includes(column.id),
+      );
+
+      exportRowsToExcel({
+        columns: selectedColumns,
+        fileName: `members-directory-${new Date().toISOString().slice(0, 10)}`,
+        filters: [
+          { label: "Search", value: searchInput.trim() || "All members" },
+          { label: "Status Filter", value: statusFilter === "all" ? "All statuses" : STATUS_META[statusFilter].label },
+          { label: "Gender Filter", value: genderFilter === "all" ? "All genders" : titleCase(genderFilter) },
+        ],
+        rows: exportMembers,
+        sheetName: "Members",
+        subtitle: "Operational resident directory export with the current members screen filters applied.",
+        summary: [
+          { label: "Matching Members", kind: "number", value: exportMembers.length },
+          {
+            label: "Active Residents",
+            kind: "number",
+            value: exportMembers.filter((member) => member.status === "active").length,
+            helper: "Currently staying in the hostel system.",
+          },
+          {
+            label: "Inactive Residents",
+            kind: "number",
+            value: exportMembers.filter((member) => member.status === "inactive").length,
+            helper: "Temporarily inactive member profiles.",
+          },
+          {
+            label: "Checked Out Residents",
+            kind: "number",
+            value: exportMembers.filter((member) => member.status === "checked_out").length,
+            helper: "Former residents kept for operational history.",
+          },
+        ],
+        title: "Members Directory Export",
+        workbookTitle: "Members Directory Workbook",
+      });
+
+      setFeedback(
+        `Members Excel exported successfully with ${exportMembers.length} records and ${selectedColumns.length} selected columns.`,
+      );
+      setIsExportModalOpen(false);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Failed to export members.");
+    } finally {
+      setIsExportingMembers(false);
+    }
+  }
+
   return (
     <>
       <section className="space-y-5 pb-3" onClick={() => setOpenActionMenuId(null)}>
@@ -349,19 +609,33 @@ export default function MembersPage() {
             <p className="mt-2 text-sm text-[var(--color-text-soft)] sm:text-base">{formatCountLabel(totalRecords)}</p>
           </div>
 
-          {canManageMembers ? (
+          <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={(event) => {
                 event.stopPropagation();
-                openCreateModal();
+                openExportModal();
               }}
-              className="dashboard-cta dashboard-cta-primary"
+              className="dashboard-cta dashboard-cta-secondary"
             >
-              <Plus className="h-4 w-4" />
-              Add Member
+              <Download className="h-4 w-4" />
+              Export Excel
             </button>
-          ) : null}
+
+            {canManageMembers ? (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  openCreateModal();
+                }}
+                className="dashboard-cta dashboard-cta-primary"
+              >
+                <Plus className="h-4 w-4" />
+                Add Member
+              </button>
+            ) : null}
+          </div>
         </header>
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -462,7 +736,7 @@ export default function MembersPage() {
                 {membersQuery.error instanceof Error ? membersQuery.error.message : "Failed to load members."}
               </div>
             ) : members.length === 0 ? (
-              <div className="rounded-[22px] border px-4 py-12 text-center" style={{ borderColor: "var(--color-border)", background: "rgba(255,255,255,0.02)" }}>
+              <div className="rounded-[22px] border px-4 py-12 text-center" style={{ borderColor: "var(--color-border)", background: "var(--color-overlay-soft)" }}>
                 <p className="text-base font-semibold text-[var(--color-text-strong)]">No members found</p>
                 <p className="mt-2 text-sm text-[var(--color-text-soft)]">
                   Try a different search or filter combination, or create a new member record.
@@ -476,11 +750,9 @@ export default function MembersPage() {
                   return (
                     <article
                       key={member.id}
-                      className={`members-animate-rise relative rounded-[22px] border px-4 py-4 sm:px-5 ${openActionMenuId === member.id ? "z-30" : "z-0"}`}
+                      className={`members-card members-animate-rise relative rounded-[22px] border px-4 py-4 sm:px-5 ${openActionMenuId === member.id ? "z-30" : "z-0"}`}
                       style={{
                         animationDelay: `${index * 40}ms`,
-                        borderColor: "var(--color-border)",
-                        background: "linear-gradient(180deg, rgba(18,28,42,0.92) 0%, rgba(13,21,33,0.96) 100%)",
                       }}
                     >
                       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_180px_240px_auto] lg:items-center">
@@ -496,7 +768,7 @@ export default function MembersPage() {
                             <div className="min-w-0">
                               <Link
                                 href={`/members/${member.id}`}
-                                className="block truncate text-base font-semibold text-[var(--color-text-strong)] transition hover:text-white sm:text-lg"
+                                className="block truncate text-base font-semibold text-[var(--color-text-strong)] transition hover:text-[var(--color-brand-600)] sm:text-lg"
                                 onClick={(event) => event.stopPropagation()}
                               >
                                 {member.full_name}
@@ -674,6 +946,24 @@ export default function MembersPage() {
           setEditingMember(null);
         }}
         onSubmit={submitForm}
+      />
+
+      <ExportColumnModal
+        columns={memberExportColumnOptions}
+        confirmLabel="Export Members Excel"
+        description="Choose the member profile fields to include. The export will gather all matching members across paginated results."
+        isOpen={isExportModalOpen}
+        isProcessing={isExportingMembers}
+        onClose={() => setIsExportModalOpen(false)}
+        onConfirm={confirmMemberExport}
+        onReset={resetMemberExportColumns}
+        onSelectAll={selectAllMemberExportColumns}
+        onToggleColumn={toggleMemberExportColumn}
+        processingLabel="Preparing members workbook..."
+        rowCount={totalRecords}
+        rowLabel="member records"
+        selectedColumnIds={selectedMemberExportColumnIds}
+        title="Export Members Workbook"
       />
     </>
   );

@@ -47,7 +47,7 @@ export function HostelSyncLogo({
       ) : (
         <span
           className={clsx(
-            "inline-flex h-full w-auto items-center justify-center rounded-full border border-white/10 bg-white/5 px-3 text-sm font-semibold uppercase tracking-[0.18em] text-white",
+            "inline-flex h-full w-auto items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-overlay-soft)] px-3 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-text-strong)]",
             fallbackClassName,
           )}
         >

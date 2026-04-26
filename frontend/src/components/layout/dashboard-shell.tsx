@@ -98,9 +98,10 @@ export function DashboardShell({ children }: DashboardShellProps) {
 
       <div
         className={clsx(
-          "fixed inset-0 z-40 bg-slate-950/55 backdrop-blur-sm transition-opacity duration-200 lg:hidden",
+          "fixed inset-0 z-40 backdrop-blur-sm transition-opacity duration-200 lg:hidden",
           mobileMenuOpen ? "opacity-100" : "pointer-events-none opacity-0",
         )}
+        style={{ backgroundColor: "var(--color-backdrop-soft)" }}
         onClick={closeMobileMenu}
       />
 
@@ -117,7 +118,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
             <div className={clsx("flex items-center", sidebarCollapsed ? "lg:justify-center" : "justify-end")}>
               <button
                 type="button"
-                className="hidden h-9 w-9 items-center justify-center rounded-[1rem] border bg-white/5 text-[var(--color-text-soft)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-text-strong)] lg:inline-flex"
+                className="hidden h-9 w-9 items-center justify-center rounded-[1rem] border bg-[var(--color-overlay-soft)] text-[var(--color-text-soft)] transition hover:border-[var(--color-border-strong)] hover:bg-[var(--color-overlay-muted)] hover:text-[var(--color-text-strong)] lg:inline-flex"
                 style={{ borderColor: "var(--color-border)" }}
                 onClick={() => setSidebarCollapsed((value) => !value)}
                 aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -128,7 +129,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
 
               <button
                 type="button"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-[1rem] border bg-white/5 text-[var(--color-text-soft)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-text-strong)] lg:hidden"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-[1rem] border bg-[var(--color-overlay-soft)] text-[var(--color-text-soft)] transition hover:border-[var(--color-border-strong)] hover:bg-[var(--color-overlay-muted)] hover:text-[var(--color-text-strong)] lg:hidden"
                 style={{ borderColor: "var(--color-border)" }}
                 onClick={closeMobileMenu}
                 aria-label="Close navigation menu"
@@ -171,11 +172,11 @@ export function DashboardShell({ children }: DashboardShellProps) {
                   onClick={closeMobileMenu}
                 >
                   <span
-                    className={clsx(
-                       "inline-flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-[0.8rem] border transition",
-                      active
-                        ? "border-white/10 bg-white/10 text-white"
-                        : "border-transparent bg-[rgba(255,255,255,0.04)] text-[var(--color-text-muted)] group-hover:border-[var(--color-border)] group-hover:bg-[rgba(255,255,255,0.06)] group-hover:text-[var(--color-text-strong)]",
+                className={clsx(
+                   "inline-flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-[0.8rem] border transition",
+                    active
+                      ? "border-white/10 bg-white/10 text-white"
+                      : "border-transparent bg-[var(--color-overlay-soft)] text-[var(--color-text-muted)] group-hover:border-[var(--color-border)] group-hover:bg-[var(--color-overlay-muted)] group-hover:text-[var(--color-text-strong)]",
                     )}
                   >
                     <Icon className="h-2.5 w-2.5" />
@@ -190,28 +191,42 @@ export function DashboardShell({ children }: DashboardShellProps) {
                 </Link>
               );
             })}
-          </nav>
 
-          <div className="border-t px-3 pb-3 pt-2.5" style={{ borderColor: "var(--color-border)" }}>
-            <div className={clsx("panel panel-soft p-2.5", sidebarCollapsed && "lg:px-2.5")}>
-              <div className={clsx("flex items-center justify-between gap-3", sidebarCollapsed && "lg:justify-center")}>
-                <ThemeToggle compact className="h-9 w-9 shrink-0 rounded-[0.95rem] bg-white/5 shadow-none" />
-              </div>
-
+            <div
+              className={clsx(
+                "mt-2 border-t pt-2",
+                sidebarCollapsed ? "lg:flex lg:justify-center" : "",
+              )}
+              style={{ borderColor: "var(--color-border)" }}
+            >
               <button
                 type="button"
                 onClick={onLogout}
                 disabled={isPending}
                 title={sidebarCollapsed ? "Sign out" : undefined}
                 className={clsx(
-                  "mt-2.5 inline-flex rounded-2xl border bg-[var(--color-surface-strong)] text-sm font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--nav-hover-bg)] hover:text-[var(--color-text-strong)] disabled:cursor-not-allowed disabled:opacity-60",
-                  sidebarCollapsed ? "w-full justify-center px-2 py-3" : "w-full items-center justify-center gap-2 px-4 py-3",
+                  "inline-flex rounded-[24px] border bg-[var(--color-surface-strong)] text-sm font-medium text-[var(--color-text-soft)] transition hover:bg-[var(--nav-hover-bg)] hover:text-[var(--color-text-strong)] disabled:cursor-not-allowed disabled:opacity-60",
+                  sidebarCollapsed ? "w-full justify-center px-3 py-3" : "w-full items-center gap-3 px-3 py-3",
                 )}
-                style={{ borderColor: "var(--color-border-strong)" }}
+                style={{ borderColor: "var(--color-border)" }}
               >
-                {isPending ? <LoaderCircle className="h-2.5 w-2.5 animate-spin" /> : <LogOut className="h-2.5 w-2.5" />}
-                <span className={clsx(sidebarCollapsed && "lg:hidden")}>Sign out</span>
+                <span className="inline-flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-[0.8rem] bg-[var(--color-overlay-soft)] text-[var(--color-text-muted)]">
+                  {isPending ? <LoaderCircle className="h-2.5 w-2.5 animate-spin" /> : <LogOut className="h-2.5 w-2.5" />}
+                </span>
+
+                <div className={clsx("min-w-0 text-left", sidebarCollapsed && "lg:hidden")}>
+                  <p className="text-sm font-semibold text-[var(--color-text-strong)]">Sign out</p>
+                  <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">Exit current workspace</p>
+                </div>
               </button>
+            </div>
+          </nav>
+
+          <div className="border-t px-3 pb-3 pt-2.5" style={{ borderColor: "var(--color-border)" }}>
+            <div className={clsx("panel panel-soft p-2.5", sidebarCollapsed && "lg:px-2.5")}>
+              <div className={clsx("flex items-center justify-between gap-3", sidebarCollapsed && "lg:justify-center")}>
+                <ThemeToggle compact className="h-9 w-9 shrink-0 rounded-[0.95rem] bg-[var(--color-overlay-soft)] shadow-none" />
+              </div>
             </div>
           </div>
         </div>
@@ -224,7 +239,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
               <button
                 type="button"
                 onClick={openMobileMenu}
-                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[0.95rem] border bg-white/5 text-[var(--color-text-soft)] transition hover:text-[var(--color-text-strong)]"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[0.95rem] border bg-[var(--color-overlay-soft)] text-[var(--color-text-soft)] transition hover:bg-[var(--color-overlay-muted)] hover:text-[var(--color-text-strong)]"
                 style={{ borderColor: "var(--color-border)" }}
                 aria-label="Open navigation menu"
               >

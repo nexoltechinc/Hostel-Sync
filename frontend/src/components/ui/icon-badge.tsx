@@ -24,11 +24,11 @@ const iconSizeClasses = {
 
 const toneClasses = {
   default:
-    "border border-[var(--color-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] text-[var(--color-text-soft)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
+    "border border-[var(--color-border)] bg-[var(--color-card-muted)] text-[var(--color-text-soft)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
   primary:
     "border border-white/10 bg-[linear-gradient(135deg,#245df4_0%,#1b82f0_48%,#1db5a8_100%)] text-white shadow-[0_18px_34px_rgba(20,64,172,0.26)]",
   muted:
-    "border border-[var(--color-border)] bg-[rgba(255,255,255,0.04)] text-[var(--color-text-muted)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
+    "border border-[var(--color-border)] bg-[var(--color-overlay-soft)] text-[var(--color-text-muted)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
 } as const;
 
 export function IconBadge({ icon: Icon, className, size = "md", tone = "default" }: IconBadgeProps) {

@@ -114,7 +114,7 @@ export function ModulePage({
           </div>
           <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--color-text-soft)]">
             {mobileBehavior.map((item) => (
-              <li key={item} className="flex items-start gap-2 rounded-2xl border bg-white/4 px-3 py-2.5" style={{ borderColor: "var(--color-border)" }}>
+              <li key={item} className="flex items-start gap-2 rounded-2xl border bg-[var(--color-overlay-soft)] px-3 py-2.5" style={{ borderColor: "var(--color-border)" }}>
                 <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-[var(--color-text-muted)]" />
                 <span>{item}</span>
               </li>
